@@ -12,6 +12,8 @@ use App\Models\Asignacion;
 use App\Models\SolicitudReasignacion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 
 class IntegridadYReasignacionTest extends TestCase
 {
@@ -294,5 +296,98 @@ class IntegridadYReasignacionTest extends TestCase
 
         // 5. Validar que el estado del ticket volvió a "Asignada" (para reiniciar flujo OTP con el nuevo técnico)
         $this->assertEquals('Asignada', Solicitud::find($solId)->estado_solicitud);
+    }
+
+    /**
+     * Test 6: Validar el ciclo completo de cierre (En Proceso -> Resuelta -> Cerrada) y encuesta opcional.
+     */
+    public function test_ciclo_completo_cierre_y_encuesta_opcional(): void
+    {
+        // 1. Crear solicitud enviando tipo_servicio
+        $response = $this->actingAs($this->solicitanteUser)
+            ->postJson('/api/solicitante/solicitudes', [
+                'id_unidad' => $this->unidad->id_unidad,
+                'tipo_servicio' => 'Soporte Técnico',
+                'titulo' => 'Falla de Servidor DHCP',
+                'descripcion' => 'Los equipos no obtienen dirección IP dinámica en el área.',
+            ]);
+        $response->assertStatus(201);
+        $solId = $response->json('solicitud.id_solicitud');
+        $this->assertEquals('Soporte Técnico', Solicitud::find($solId)->tipo_servicio);
+
+        // 2. Coordinador clasifica y asigna al tecnicoUser1
+        $response = $this->actingAs($this->coordinadorUser)
+            ->patchJson("/api/coordinador/solicitudes/{$solId}/clasificar", [
+                'prioridad' => 'Alta'
+            ]);
+        $response->assertStatus(200);
+
+        $response = $this->actingAs($this->coordinadorUser)
+            ->postJson("/api/coordinador/solicitudes/{$solId}/asignar", [
+                'id_usuario_tecnico' => $this->tecnicoUser1->id_usuario
+            ]);
+        $response->assertStatus(201);
+        $asigId = $response->json('asignacion.id_asignacion');
+
+        // 3. Técnico inicia atención con el OTP
+        $otp = Solicitud::find($solId)->codigo_verificacion;
+        $response = $this->actingAs($this->tecnicoUser1)
+            ->patchJson("/api/tecnico/asignaciones/{$asigId}/iniciar", [
+                'codigo_verificacion' => $otp
+            ]);
+        $response->assertStatus(200);
+        $this->assertEquals('En Proceso', Solicitud::find($solId)->estado_solicitud);
+
+        Storage::fake('public');
+
+        // 4. Técnico intenta solicitar cierre sin bitácora (Debe fallar)
+        $response = $this->actingAs($this->tecnicoUser1)
+            ->patchJson("/api/tecnico/asignaciones/{$asigId}/solicitar-cierre");
+        $response->assertStatus(422);
+
+        // 5. Técnico registra bitácora
+        $response = $this->actingAs($this->tecnicoUser1)
+            ->postJson("/api/tecnico/asignaciones/{$asigId}/bitacoras", [
+                'descripcion_trabajo' => 'Se reinició el servicio DHCP y se expandió el pool de direccionamiento.',
+                'materiales' => 'Ninguno',
+            ]);
+        $response->assertStatus(201);
+
+        // 5.5. Técnico sube evidencia de cierre
+        $response = $this->actingAs($this->tecnicoUser1)
+            ->postJson("/api/tecnico/asignaciones/{$asigId}/evidencias", [
+                'archivo' => UploadedFile::fake()->image('evidencia_cierre.png'),
+            ]);
+        $response->assertStatus(201);
+
+        // 6. Técnico solicita cierre de nuevo (Debe pasar y cambiar a Resuelta)
+        $response = $this->actingAs($this->tecnicoUser1)
+            ->patchJson("/api/tecnico/asignaciones/{$asigId}/solicitar-cierre");
+        $response->assertStatus(200);
+        $this->assertEquals('Resuelta', Solicitud::find($solId)->estado_solicitud);
+
+        // 7. Coordinador valida cierre (Debe pasar y cambiar a Cerrada)
+        $response = $this->actingAs($this->coordinadorUser)
+            ->patchJson("/api/coordinador/solicitudes/{$solId}/validar-cierre");
+        $response->assertStatus(200);
+        $this->assertEquals('Cerrada', Solicitud::find($solId)->estado_solicitud);
+
+        // Verificar registro de auditoría del estado 'Cerrada'
+        $this->assertDatabaseHas('historial_cambios', [
+            'id_solicitud' => $solId,
+            'campo_modificado' => 'estado_solicitud',
+            'valor_anterior' => 'Resuelta',
+            'valor_nuevo' => 'Cerrada',
+        ]);
+
+        // 8. Solicitante califica encuesta sobre el ticket ya Cerrado (Debe pasar)
+        $response = $this->actingAs($this->solicitanteUser)
+            ->postJson("/api/solicitante/solicitudes/{$solId}/encuesta", [
+                'calificacion_rapidez' => 5,
+                'calificacion_calidad' => 5,
+                'calificacion_amabilidad' => 5,
+                'comentarios' => 'Excelente soporte inmediato.',
+            ]);
+        $response->assertStatus(201);
     }
 }

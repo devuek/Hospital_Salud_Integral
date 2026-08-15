@@ -11,13 +11,21 @@ use Illuminate\Support\Facades\Storage;
 
 class SolicitudesController extends Controller
 {
-    // Listar solicitudes creadas por el usuario autenticado
+
     public function index(Request $request)
     {
         $query = Solicitud::with(['unidad.sede', 'evidencias', 'asignacion.tecnico'])
             ->where('id_usuario_solicitante', $request->user()->id_usuario);
 
-        // Para efectos de filtrado en el frontend, validamos parámetros opcionales.
+        if ($request->filled('buscar')) {
+            $term = '%' . $request->buscar . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('titulo', 'like', $term)
+                  ->orWhere('descripcion', 'like', $term)
+                  ->orWhere('id_solicitud', 'like', $term);
+            });
+        }
+
         if ($request->filled('estado')) {
             $query->where('estado_solicitud', $request->estado);
         }
@@ -34,24 +42,24 @@ class SolicitudesController extends Controller
         return response()->json($query->latest()->paginate($perPage));
     }
 
-    // Registro de una nueva solicitud a través del formulario provisto por el usuario.
     public function store(Request $request)
     {
         $request->validate([
-            'id_unidad'   => 'required|exists:unidades,id_unidad',
-            'titulo'      => 'required|string|max:200',
-            'descripcion' => 'required|string',
+            'id_unidad'     => 'required|exists:unidades,id_unidad',
+            'tipo_servicio' => 'required|in:Soporte Técnico,Servicios Generales',
+            'titulo'        => 'required|string|max:200',
+            'descripcion'   => 'required|string',
         ]);
 
         $solicitud = Solicitud::create([
             'id_usuario_solicitante' => $request->user()->id_usuario,
             'id_unidad'              => $request->id_unidad,
+            'tipo_servicio'          => $request->tipo_servicio,
             'titulo'                 => $request->titulo,
             'descripcion'            => $request->descripcion,
             'estado_solicitud'       => 'Abierta',
         ]);
 
-        // Registrar la creación en el historial de cambios
         $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'estado_solicitud', null, 'Abierta');
 
         return response()->json([
@@ -60,7 +68,6 @@ class SolicitudesController extends Controller
         ], 201);
     }
 
-    // Obtener el detalle completo de una solicitud
     public function show(Request $request, string $id)
     {
         $solicitud = Solicitud::with([
@@ -74,7 +81,6 @@ class SolicitudesController extends Controller
             'historial.usuario',
         ])->findOrFail($id);
 
-        // Validar que el solicitante sea el dueño de la solicitud, y que el técnico esté asignado
         $usuario = $request->user();
         if ($usuario->rol->nombre_rol === 'Solicitante' && $solicitud->id_usuario_solicitante !== $usuario->id_usuario) {
             return response()->json(['mensaje' => 'No cuenta con la autorización requerida para visualizar esta solicitud.'], 403);
@@ -90,13 +96,11 @@ class SolicitudesController extends Controller
         return response()->json($solicitud);
     }
 
-    // Actualización de datos de una solicitud, siempre y cuando se mantenga en un estado que lo permita.
     public function update(Request $request, string $id)
     {
         $solicitud = Solicitud::where('id_usuario_solicitante', $request->user()->id_usuario)
             ->findOrFail($id);
 
-        // Solo se permite la modificación si el ticket no ha sido asignado a un técnico todavía.
         if (!in_array($solicitud->estado_solicitud, ['Abierta', 'Devuelta'])) {
             return response()->json([
                 'mensaje' => 'No es posible realizar la modificación dado que el ticket se encuentra en estado: ' . $solicitud->estado_solicitud,
@@ -117,7 +121,6 @@ class SolicitudesController extends Controller
         ]);
     }
 
-    // Permite al solicitante desistir y proceder con la cancelación formal del ticket ingresado.
     public function cancelar(Request $request, string $id)
     {
         $solicitud = Solicitud::where('id_usuario_solicitante', $request->user()->id_usuario)
@@ -137,7 +140,6 @@ class SolicitudesController extends Controller
         return response()->json(['mensaje' => 'La solicitud ha sido cancelada satisfactoriamente.']);
     }
 
-    // Subir un archivo de evidencia para la solicitud
     public function adjuntarEvidencia(Request $request, string $id)
     {
         $solicitud = Solicitud::where('id_usuario_solicitante', $request->user()->id_usuario)
@@ -161,7 +163,6 @@ class SolicitudesController extends Controller
         ], 201);
     }
 
-    // Registrar cambio en el historial
     private function registrarHistorial(Solicitud $solicitud, string $idUsuario, string $campo, ?string $anterior, ?string $nuevo): void
     {
         HistorialCambio::create([

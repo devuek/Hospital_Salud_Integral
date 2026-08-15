@@ -10,31 +10,32 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    // Iniciar sesión y generar el token de acceso con Sanctum
+
     public function login(Request $request)
     {
         $request->validate([
             'correo'   => 'required|email',
             'password' => 'required|string',
+        ], [
+            'correo.required' => 'El correo electrónico es obligatorio para ingresar.',
+            'correo.email'    => 'Debes introducir una dirección de correo electrónico válida.',
+            'password.required' => 'La contraseña es obligatoria.',
         ]);
 
         $usuario = User::where('correo', $request->correo)->first();
 
-        // Verificar que el usuario exista y la contraseña sea válida
         if (!$usuario || !Hash::check($request->password, $usuario->password)) {
             throw ValidationException::withMessages([
                 'correo' => ['Las credenciales introducidas no son válidas.'],
             ]);
         }
 
-        // Bloquear acceso si la cuenta del usuario está inactiva
         if ($usuario->estado !== 'Activo') {
             return response()->json([
                 'mensaje' => 'Su cuenta se encuentra inactiva en este momento. Por favor, comuníquese con el administrador para solventar.',
             ], 403);
         }
 
-        // Revocar tokens anteriores y generar un nuevo token de acceso
         $usuario->tokens()->delete();
         $token = $usuario->createToken('app-token')->plainTextToken;
 
@@ -42,15 +43,17 @@ class AuthController extends Controller
             'mensaje' => 'Sesión iniciada con éxito.',
             'token'   => $token,
             'usuario' => [
-                'id'     => $usuario->id_usuario,
-                'nombre' => $usuario->nombre . ' ' . $usuario->apellido,
-                'correo' => $usuario->correo,
-                'rol'    => $usuario->rol->nombre_rol ?? null,
+                'id'             => $usuario->id_usuario,
+                'nombre'         => $usuario->nombre . ' ' . $usuario->apellido,
+                'correo'         => $usuario->correo,
+                'rol'            => $usuario->rol->nombre_rol ?? null,
+                'id_sede'        => $usuario->id_sede ?? null,
+                'sede'           => $usuario->sede->nombre_sede ?? null,
+                'area_servicio'  => $usuario->area_servicio ?? null,
             ],
         ]);
     }
 
-    // Cerrar sesión e invalidar el token de acceso actual
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -60,23 +63,22 @@ class AuthController extends Controller
         ]);
     }
 
-    // Obtener los datos del usuario autenticado
     public function me(Request $request)
     {
-        $usuario = $request->user()->load('rol');
+        $usuario = $request->user()->load(['rol', 'sede']);
 
         return response()->json([
-            'id'     => $usuario->id_usuario,
-            'nombre' => $usuario->nombre . ' ' . $usuario->apellido,
-            'correo' => $usuario->correo,
-            'estado' => $usuario->estado,
-            'rol'    => $usuario->rol->nombre_rol ?? null,
+            'id'            => $usuario->id_usuario,
+            'nombre'        => $usuario->nombre . ' ' . $usuario->apellido,
+            'correo'        => $usuario->correo,
+            'estado'        => $usuario->estado,
+            'rol'           => $usuario->rol->nombre_rol ?? null,
+            'id_sede'       => $usuario->id_sede ?? null,
+            'sede'          => $usuario->sede->nombre_sede ?? null,
+            'area_servicio' => $usuario->area_servicio ?? null,
         ]);
     }
 
-    /**
-     * Solicitar un enlace de recuperación de contraseña por correo electrónico.
-     */
     public function enviarEnlaceRecuperacion(Request $request)
     {
         $request->validate([
@@ -93,7 +95,6 @@ class AuthController extends Controller
                 ], 403);
             }
 
-            // Generar token aleatorio seguro
             $token = \Illuminate\Support\Str::random(60);
 
             // Almacenar token hasheado en la base de datos (seguridad OWASP)
@@ -105,7 +106,6 @@ class AuthController extends Controller
                 ]
             );
 
-            // Enviar la notificación de correo electrónico
             $usuario->sendPasswordResetNotification($token);
         }
 
@@ -115,9 +115,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Procesar el restablecimiento formal de la contraseña.
-     */
     public function restablecerPassword(Request $request)
     {
         $request->validate([
@@ -126,7 +123,6 @@ class AuthController extends Controller
             'password'              => 'required|string|min:8|confirmed',
         ]);
 
-        // Buscar el token en password_reset_tokens
         $registro = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
             ->where('email', $request->correo)
             ->first();
@@ -149,7 +145,6 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Validar autenticidad del token
         if (!\Illuminate\Support\Facades\Hash::check($request->token, $registro->token)) {
             return response()->json([
                 'mensaje' => 'El enlace de recuperación no es válido.'
@@ -170,7 +165,6 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Cambiar contraseña
         $usuario->update([
             'password' => \Illuminate\Support\Facades\Hash::make($request->password),
         ]);
@@ -178,7 +172,6 @@ class AuthController extends Controller
         // Invalidar tokens previos de Sanctum para cerrar todas las sesiones del usuario de forma segura
         $usuario->tokens()->delete();
 
-        // Eliminar el token utilizado de la base de datos
         \Illuminate\Support\Facades\DB::table('password_reset_tokens')
             ->where('email', $request->correo)
             ->delete();

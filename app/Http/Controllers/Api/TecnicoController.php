@@ -7,11 +7,13 @@ use App\Models\Asignacion;
 use App\Models\Bitacora;
 use App\Models\Solicitud;
 use App\Models\HistorialCambio;
+use App\Models\Evidencia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TecnicoController extends Controller
 {
-    // Consultar las asignaciones asignadas al técnico autenticado
+
     public function misAsignaciones(Request $request)
     {
         $perPage = $request->integer('per_page', 15);
@@ -23,45 +25,33 @@ class TecnicoController extends Controller
         return response()->json($asignaciones);
     }
 
-    // Registrar el inicio de la atención del ticket con validación OTP
     public function iniciarAtencion(Request $request, string $idAsignacion)
     {
         $asignacion = Asignacion::where('id_usuario_tecnico', $request->user()->id_usuario)
             ->findOrFail($idAsignacion);
 
-        $request->validate([
-            'codigo_verificacion' => 'required|string|size:6',
-        ]);
-
         $solicitud = $asignacion->solicitud;
 
-        if ($solicitud->estado_solicitud !== 'Asignada') {
+        if (!in_array($solicitud->estado_solicitud, ['Asignada', 'Abierta', 'Devuelta'])) {
             return response()->json([
                 'mensaje' => 'No es posible realizar la acción. Esta solicitud ya se encuentra en atención o fue cerrada.',
             ], 422);
         }
 
-        // Validar el código de verificación física OTP ingresado por el técnico
-        if (strtoupper($request->codigo_verificacion) !== strtoupper($solicitud->codigo_verificacion)) {
-            return response()->json([
-                'mensaje' => 'El código de verificación física ingresado es incorrecto. Favor solicitar el OTP correcto al solicitante.',
-            ], 422);
-        }
-
+        $valorAnterior = $solicitud->estado_solicitud;
         $solicitud->update(['estado_solicitud' => 'En Proceso']);
 
         HistorialCambio::create([
             'id_solicitud'     => $solicitud->id_solicitud,
             'id_usuario'       => $request->user()->id_usuario,
             'campo_modificado' => 'estado_solicitud',
-            'valor_anterior'   => 'Asignada',
+            'valor_anterior'   => $valorAnterior,
             'valor_nuevo'      => 'En Proceso',
         ]);
 
         return response()->json(['mensaje' => 'Estado de la solicitud actualizado a En Proceso.']);
     }
 
-    // Registrar una nueva entrada en la bitácora de trabajo
     public function registrarBitacora(Request $request, string $idAsignacion)
     {
         $asignacion = Asignacion::where('id_usuario_tecnico', $request->user()->id_usuario)
@@ -88,7 +78,6 @@ class TecnicoController extends Controller
         ], 201);
     }
 
-    // Obtener las bitácoras asociadas a una asignación
     public function verBitacoras(Request $request, string $idAsignacion)
     {
         $asignacion = Asignacion::where('id_usuario_tecnico', $request->user()->id_usuario)
@@ -97,11 +86,14 @@ class TecnicoController extends Controller
         return response()->json($asignacion->bitacoras()->latest()->get());
     }
 
-    // Solicitar la revisión y el cierre de la solicitud al coordinador
     public function solicitarCierre(Request $request, string $idAsignacion)
     {
         $asignacion = Asignacion::where('id_usuario_tecnico', $request->user()->id_usuario)
             ->findOrFail($idAsignacion);
+
+        $request->validate([
+            'codigo_verificacion' => 'required|string|size:6',
+        ]);
 
         $solicitud = $asignacion->solicitud;
 
@@ -111,13 +103,26 @@ class TecnicoController extends Controller
             ], 422);
         }
 
-        // Registrar la solicitud de cierre en el historial de cambios
+        if (strtoupper($request->codigo_verificacion) !== strtoupper($solicitud->codigo_verificacion)) {
+            return response()->json([
+                'mensaje' => 'El código de verificación física ingresado es incorrecto. Favor solicitar el OTP correcto al solicitante.',
+            ], 422);
+        }
+
+        if ($asignacion->bitacoras()->count() === 0) {
+            return response()->json([
+                'mensaje' => 'No es posible solicitar el cierre. Debe registrar al menos una bitácora de trabajo.',
+            ], 422);
+        }
+
+        $solicitud->update(['estado_solicitud' => 'Resuelta']);
+
         HistorialCambio::create([
             'id_solicitud'     => $solicitud->id_solicitud,
             'id_usuario'       => $request->user()->id_usuario,
-            'campo_modificado' => 'cierre_solicitado',
-            'valor_anterior'   => null,
-            'valor_nuevo'      => 'Técnico solicita revisión para cierre',
+            'campo_modificado' => 'estado_solicitud',
+            'valor_anterior'   => 'En Proceso',
+            'valor_nuevo'      => 'Resuelta',
         ]);
 
         return response()->json([
@@ -125,7 +130,6 @@ class TecnicoController extends Controller
         ]);
     }
 
-    // Solicitar la reasignación de una orden de trabajo asignada
     public function solicitarReasignacion(Request $request, string $idAsignacion)
     {
         $asignacion = Asignacion::where('id_usuario_tecnico', $request->user()->id_usuario)
@@ -133,7 +137,6 @@ class TecnicoController extends Controller
 
         $solicitud = $asignacion->solicitud;
 
-        // Validar que el ticket esté en un estado que permita ser reasignado
         if (!in_array($solicitud->estado_solicitud, ['Asignada', 'En Proceso'])) {
             return response()->json([
                 'mensaje' => 'No es posible solicitar la reasignación. El ticket debe encontrarse en estado Asignada o En Proceso.',
@@ -145,7 +148,6 @@ class TecnicoController extends Controller
             'id_usuario_tecnico_propuesto' => 'nullable|exists:users,id_usuario',
         ]);
 
-        // Si se propone un técnico, validar que tenga el rol de Técnico
         if ($request->filled('id_usuario_tecnico_propuesto')) {
             $tecnicoPropuesto = \App\Models\User::with('rol')->findOrFail($request->id_usuario_tecnico_propuesto);
             if (!$tecnicoPropuesto->tieneRol('Técnico')) {
@@ -155,7 +157,6 @@ class TecnicoController extends Controller
             }
         }
 
-        // Crear la solicitud de reasignación
         $solicitudReasignacion = \App\Models\SolicitudReasignacion::create([
             'id_solicitud' => $solicitud->id_solicitud,
             'id_usuario_tecnico_solicitante' => $request->user()->id_usuario,
@@ -167,6 +168,37 @@ class TecnicoController extends Controller
         return response()->json([
             'mensaje' => 'Solicitud de reasignación enviada con éxito al líder técnico/coordinador.',
             'solicitud_reasignacion' => $solicitudReasignacion,
+        ], 201);
+    }
+
+    public function adjuntarEvidencia(Request $request, string $idAsignacion)
+    {
+        $asignacion = Asignacion::where('id_usuario_tecnico', $request->user()->id_usuario)
+            ->findOrFail($idAsignacion);
+
+        $solicitud = $asignacion->solicitud;
+
+        if ($solicitud->estado_solicitud !== 'En Proceso') {
+            return response()->json([
+                'mensaje' => 'Acción denegada. Solo se pueden adjuntar evidencias a solicitudes en proceso.',
+            ], 422);
+        }
+
+        $request->validate([
+            'archivo' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        $path = $request->file('archivo')->store('evidencias', 'public');
+
+        $evidencia = Evidencia::create([
+            'id_solicitud' => $solicitud->id_solicitud,
+            'url_recurso'  => Storage::url($path),
+            'tipo_archivo' => $request->file('archivo')->getMimeType(),
+        ]);
+
+        return response()->json([
+            'mensaje'   => 'Archivo de evidencia de cierre adjuntado con éxito.',
+            'evidencia' => $evidencia,
         ], 201);
     }
 }

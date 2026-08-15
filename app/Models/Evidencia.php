@@ -37,7 +37,6 @@ class Evidencia extends Model
         });
     }
 
-    // Relación de pertenencia: vincula de forma directa la evidencia (imagen o pdf) con la solicitud de origen.
     public function solicitud()
     {
         return $this->belongsTo(Solicitud::class, 'id_solicitud', 'id_solicitud');

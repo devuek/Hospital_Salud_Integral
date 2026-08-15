@@ -21,13 +21,11 @@ class Unidad extends Model
         'nombre_unidad',
     ];
 
-    // Relación de pertenencia: define la sede o edificio en el cual se ubica esta área física.
     public function sede()
     {
         return $this->belongsTo(Sede::class, 'id_sede', 'id_sede');
     }
 
-    // Relación de uno a muchos: registra de forma agrupada todas las solicitudes recibidas desde esta unidad.
     public function solicitudes()
     {
         return $this->hasMany(Solicitud::class, 'id_unidad', 'id_unidad');

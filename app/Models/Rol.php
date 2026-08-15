@@ -12,7 +12,6 @@ class Rol extends Model
 
     protected $table = 'roles';
 
-    // Llave primaria configurada de forma explícita para la entidad de roles.
     protected $primaryKey = 'id_rol';
 
     public $incrementing = false;
@@ -23,7 +22,6 @@ class Rol extends Model
         'descripcion',
     ];
 
-    // Relación de uno a muchos: define los usuarios que se encuentran asignados a este rol.
     public function usuarios()
     {
         return $this->hasMany(User::class, 'id_rol', 'id_rol');

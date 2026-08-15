@@ -29,7 +29,6 @@ class Bitacora extends Model
         'fecha_fin'    => 'datetime',
     ];
 
-    // Relación de pertenencia: define la asignación de soporte técnico a la cual pertenece este registro diario de trabajo.
     public function asignacion()
     {
         return $this->belongsTo(Asignacion::class, 'id_asignacion', 'id_asignacion');

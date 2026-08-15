@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class CoordinadorController extends Controller
 {
-    // Listar todas las solicitudes abiertas o devueltas para revisión del coordinador
+
     public function solicitudesPendientes(Request $request)
     {
         $query = Solicitud::with(['solicitante', 'unidad.sede', 'evidencias'])
@@ -29,7 +29,43 @@ class CoordinadorController extends Controller
         return response()->json($query->oldest()->paginate($perPage));
     }
 
-    // Clasificar y asignar prioridad a la solicitud
+    public function historialCompleto(Request $request)
+    {
+        $query = Solicitud::with(['solicitante', 'unidad.sede', 'asignacion.tecnico', 'evidencias']);
+
+        if ($request->filled('buscar')) {
+            $term = '%' . $request->buscar . '%';
+            $query->where(function ($q) use ($term) {
+                $q->where('titulo', 'like', $term)
+                  ->orWhere('descripcion', 'like', $term)
+                  ->orWhere('id_solicitud', 'like', $term)
+                  ->orWhereHas('unidad', function ($qu) use ($term) {
+                      $qu->where('nombre_unidad', 'like', $term)
+                        ->orWhereHas('sede', function ($qs) use ($term) {
+                            $qs->where('nombre_sede', 'like', $term);
+                        });
+                  });
+            });
+        }
+
+        if ($request->filled('estado')) {
+            $query->where('estado_solicitud', $request->estado);
+        }
+
+        if ($request->filled('prioridad')) {
+            $query->where('prioridad', $request->prioridad);
+        }
+
+        if ($request->filled('id_sede')) {
+            $query->whereHas('unidad', function ($q) use ($request) {
+                $q->where('id_sede', $request->id_sede);
+            });
+        }
+
+        $perPage = $request->integer('per_page', 15);
+        return response()->json($query->latest()->paginate($perPage));
+    }
+
     public function clasificar(Request $request, string $id)
     {
         $solicitud = Solicitud::findOrFail($id);
@@ -49,7 +85,6 @@ class CoordinadorController extends Controller
         ]);
     }
 
-    // Devolver la solicitud para correcciones del solicitante
     public function devolver(Request $request, string $id)
     {
         $solicitud = Solicitud::findOrFail($id);
@@ -63,13 +98,11 @@ class CoordinadorController extends Controller
 
         $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'estado_solicitud', $estadoAnterior, 'Devuelta');
 
-        // Registrar el motivo de la devolución en el historial de cambios
         $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'motivo_devolucion', null, $request->motivo);
 
         return response()->json(['mensaje' => 'La solicitud ha sido devuelta al solicitante de manera formal.']);
     }
 
-    // Asignar un técnico de soporte a la solicitud
     public function asignar(Request $request, string $id)
     {
         $solicitud = Solicitud::findOrFail($id);
@@ -84,13 +117,11 @@ class CoordinadorController extends Controller
             'id_usuario_tecnico' => 'required|exists:users,id_usuario',
         ]);
 
-        // Validar que el usuario seleccionado tenga rol de Técnico
         $tecnico = User::with('rol')->findOrFail($request->id_usuario_tecnico);
         if (!$tecnico->tieneRol('Técnico')) {
             return response()->json(['mensaje' => 'El usuario seleccionado no posee el rol de Técnico. Favor verificar.'], 422);
         }
 
-        // Eliminar asignación previa si existe (reasignación)
         Asignacion::where('id_solicitud', $solicitud->id_solicitud)->delete();
 
         $asignacion = Asignacion::create([
@@ -111,24 +142,22 @@ class CoordinadorController extends Controller
         ], 201);
     }
 
-    // Validar el trabajo realizado y marcar la solicitud como Validada
     public function validarCierre(Request $request, string $id)
     {
         $solicitud = Solicitud::findOrFail($id);
 
-        if ($solicitud->estado_solicitud !== 'En Proceso') {
+        if ($solicitud->estado_solicitud !== 'Resuelta') {
             return response()->json([
-                'mensaje' => 'No es posible realizar la acción. Solo se puede cerrar una solicitud que se encuentre en proceso.',
+                'mensaje' => 'No es posible realizar la acción. Solo se puede cerrar una solicitud que se encuentre resuelta.',
             ], 422);
         }
 
-        $solicitud->update(['estado_solicitud' => 'Validada']);
-        $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'estado_solicitud', 'En Proceso', 'Validada');
+        $solicitud->update(['estado_solicitud' => 'Cerrada']);
+        $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'estado_solicitud', 'Resuelta', 'Cerrada');
 
         return response()->json(['mensaje' => 'Solicitud validada y cerrada correctamente.']);
     }
 
-    // Listar las solicitudes de reasignación pendientes
     public function listarReasignacionesPendientes(Request $request)
     {
         $perPage = $request->integer('per_page', 15);
@@ -143,7 +172,6 @@ class CoordinadorController extends Controller
         return response()->json($reasignaciones);
     }
 
-    // Obtener la carga de trabajo actual de los técnicos activos
     public function obtenerCargaTrabajoTecnicos(Request $request)
     {
         $tecnicos = \App\Models\User::whereHas('rol', fn($q) => $q->where('nombre_rol', 'Técnico'))
@@ -162,7 +190,6 @@ class CoordinadorController extends Controller
         return response()->json($tecnicos);
     }
 
-    // Resolver (Aprobar o Rechazar) una solicitud de reasignación
     public function resolverReasignacion(Request $request, string $idReasignacion)
     {
         $reasignacion = \App\Models\SolicitudReasignacion::where('estado', 'Pendiente')
@@ -189,17 +216,14 @@ class CoordinadorController extends Controller
             ]);
         }
 
-        // Si es aprobada:
         $nuevoTecnico = \App\Models\User::with('rol')->findOrFail($request->id_usuario_tecnico_nuevo);
         if (!$nuevoTecnico->tieneRol('Técnico')) {
             return response()->json(['mensaje' => 'El nuevo usuario propuesto no posee el rol de Técnico.'], 422);
         }
 
-        // Obtener asignación previa
         $asignacion = Asignacion::where('id_solicitud', $solicitud->id_solicitud)->first();
         $tecnicoAnteriorId = $asignacion ? $asignacion->id_usuario_tecnico : null;
 
-        // Actualizar o crear asignación
         if ($asignacion) {
             $asignacion->update([
                 'id_usuario_tecnico' => $request->id_usuario_tecnico_nuevo,
@@ -215,7 +239,6 @@ class CoordinadorController extends Controller
             ]);
         }
 
-        // Obtener nombres para auditoría
         $tecnicoAnteriorNombre = 'Ninguno';
         if ($tecnicoAnteriorId) {
             $tecnicoAnterior = \App\Models\User::find($tecnicoAnteriorId);
@@ -223,7 +246,6 @@ class CoordinadorController extends Controller
         }
         $nuevoTecnicoNombre = $nuevoTecnico->nombre . ' ' . $nuevoTecnico->apellido;
 
-        // Si la solicitud estaba en proceso, revertir a "Asignada"
         $estadoAnterior = $solicitud->estado_solicitud;
         if ($estadoAnterior === 'En Proceso') {
             $solicitud->update([
@@ -232,7 +254,6 @@ class CoordinadorController extends Controller
             $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'estado_solicitud', 'En Proceso', 'Asignada');
         }
 
-        // Registrar el cambio de técnico en el historial
         $this->registrarHistorial(
             $solicitud,
             $request->user()->id_usuario,
@@ -241,7 +262,6 @@ class CoordinadorController extends Controller
             $nuevoTecnicoNombre
         );
 
-        // Actualizar la solicitud de reasignación
         $reasignacion->update([
             'estado' => 'Aprobada',
             'id_usuario_coordinador' => $request->user()->id_usuario,
@@ -254,7 +274,6 @@ class CoordinadorController extends Controller
         ]);
     }
 
-    // Registro histórico de cambios
     private function registrarHistorial(Solicitud $solicitud, string $idUsuario, string $campo, ?string $anterior, ?string $nuevo): void
     {
         HistorialCambio::create([

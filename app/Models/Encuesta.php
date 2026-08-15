@@ -24,7 +24,6 @@ class Encuesta extends Model
         'comentarios',
     ];
 
-    // Relación de pertenencia: vincula la encuesta directamente a la solicitud de servicio ya finalizada.
     public function solicitud()
     {
         return $this->belongsTo(Solicitud::class, 'id_solicitud', 'id_solicitud');

@@ -16,7 +16,6 @@ class HistorialCambio extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    // Campos asignables de forma masiva.
     protected $fillable = [
         'id_solicitud',
         'id_usuario',
@@ -25,13 +24,11 @@ class HistorialCambio extends Model
         'valor_nuevo',
     ];
 
-    // Relación con la solicitud afectada
     public function solicitud()
     {
         return $this->belongsTo(Solicitud::class, 'id_solicitud', 'id_solicitud');
     }
 
-    // Relación con el usuario que realizó la modificación
     public function usuario()
     {
         return $this->belongsTo(User::class, 'id_usuario', 'id_usuario');

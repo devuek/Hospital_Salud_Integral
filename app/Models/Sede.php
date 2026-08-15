@@ -21,7 +21,6 @@ class Sede extends Model
         'direccion',
     ];
 
-    // Relación de uno a muchos: una sede física alberga múltiples unidades organizativas o departamentos.
     public function unidades()
     {
         return $this->hasMany(Unidad::class, 'id_sede', 'id_sede');

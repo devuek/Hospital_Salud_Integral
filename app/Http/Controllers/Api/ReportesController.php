@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class ReportesController extends Controller
 {
-    // Obtener totales por estado, prioridad y otras métricas del dashboard
+
     public function dashboard()
     {
         $totalesPorEstado = Solicitud::select('estado_solicitud', DB::raw('count(*) as total'))
@@ -24,7 +24,6 @@ class ReportesController extends Controller
             ->groupBy('prioridad')
             ->pluck('total', 'prioridad');
 
-        // Técnicos con mayor volumen de solicitudes resueltas en los últimos 30 días.
         $tecnicosMasActivos = Asignacion::with('tecnico')
             ->whereHas('solicitud', fn($q) => $q->whereIn('estado_solicitud', ['Validada', 'Cerrada']))
             ->where('created_at', '>=', now()->subDays(30))
@@ -38,7 +37,6 @@ class ReportesController extends Controller
                 'total'   => $a->total,
             ]);
 
-        // Promedio de calificaciones de las encuestas
         $promedioEncuestas = Encuesta::select(
             DB::raw('round(avg(calificacion_rapidez), 1) as rapidez'),
             DB::raw('round(avg(calificacion_calidad), 1) as calidad'),
@@ -53,7 +51,6 @@ class ReportesController extends Controller
         ]);
     }
 
-    // Obtener solicitudes agrupadas por unidad con filtro de fechas opcional
     public function porArea(Request $request)
     {
         $request->validate([
@@ -62,8 +59,8 @@ class ReportesController extends Controller
         ]);
 
         $datos = Solicitud::with('unidad.sede')
-            ->when($request->desde, fn($q) => $q->whereDate('fecha_apertura', '>=', $request->desde))
-            ->when($request->hasta, fn($q) => $q->whereDate('fecha_apertura', '<=', $request->hasta))
+            ->when($request->desde, fn($q) => $q->where('fecha_apertura', '>=', $request->desde))
+            ->when($request->hasta, fn($q) => $q->where('fecha_apertura', '<=', $request->hasta . ' 23:59:59'))
             ->select('id_unidad', 'estado_solicitud', DB::raw('count(*) as total'))
             ->groupBy('id_unidad', 'estado_solicitud')
             ->get();
@@ -71,28 +68,51 @@ class ReportesController extends Controller
         return response()->json($datos);
     }
 
-    // Obtener estadísticas de rendimiento para cada técnico
     public function rendimientoTecnicos(Request $request)
     {
-        $tecnicos = User::whereHas('rol', fn($q) => $q->where('nombre_rol', 'Técnico'))
-            ->with(['asignacionesTecnico.solicitud'])
+        $datos = DB::table('users as u')
+            ->join('roles as r', 'r.id_rol', '=', 'u.id_rol')
+            ->leftJoin('asignaciones as a', 'a.id_usuario_tecnico', '=', 'u.id_usuario')
+            ->leftJoin('solicitudes as s', 's.id_solicitud', '=', 'a.id_solicitud')
+            ->where('r.nombre_rol', '=', 'Técnico')
+            ->select(
+                'u.id_usuario',
+                DB::raw("concat(u.nombre, ' ', u.apellido) as tecnico"),
+                DB::raw("count(a.id_asignacion) as total_asignadas"),
+                DB::raw("sum(case when s.estado_solicitud in ('Resuelta', 'Cerrada') then 1 else 0 end) as total_resueltas"),
+                DB::raw("round(coalesce(100 * sum(case when s.estado_solicitud in ('Resuelta', 'Cerrada') then 1 else 0 end) / nullif(count(a.id_asignacion), 0), 0), 1) as tasa_resolucion")
+            )
+            ->groupBy('u.id_usuario', 'u.nombre', 'u.apellido')
+            ->orderBy('tecnico')
             ->get()
-            ->map(function ($t) {
-                $asignaciones = $t->asignacionesTecnico;
-                $cerradas = $asignaciones->filter(
-                    fn($a) => in_array($a->solicitud->estado_solicitud ?? '', ['Validada', 'Cerrada'])
-                );
+            ->map(fn($t) => [
+                'tecnico'         => $t->tecnico,
+                'total_asignadas' => (int) $t->total_asignadas,
+                'total_resueltas' => (int) $t->total_resueltas,
+                'tasa_resolucion' => $t->tasa_resolucion . '%',
+            ]);
 
-                return [
-                    'tecnico'             => $t->nombre . ' ' . $t->apellido,
-                    'total_asignadas'     => $asignaciones->count(),
-                    'total_resueltas'     => $cerradas->count(),
-                    'tasa_resolucion'     => $asignaciones->count()
-                        ? round($cerradas->count() / $asignaciones->count() * 100, 1) . '%'
-                        : '0%',
-                ];
-            });
+        return response()->json($datos);
+    }
 
-        return response()->json($tecnicos);
+    public function descargarPDFProxy(Request $request)
+    {
+        $request->validate([
+            'pdf' => 'required|string',
+            'filename' => 'required|string',
+        ]);
+
+        $pdfBase64 = $request->input('pdf');
+        if (str_starts_with($pdfBase64, 'data:')) {
+            $parts = explode(',', $pdfBase64);
+            $pdfBase64 = end($parts);
+        }
+
+        $pdfBinary = base64_decode($pdfBase64);
+        $filename = $request->input('filename', 'reporte.pdf');
+
+        return response($pdfBinary, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 }

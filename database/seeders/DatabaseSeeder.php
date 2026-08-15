@@ -46,7 +46,7 @@ class DatabaseSeeder extends Seeder
         );
 
         // ------------------------------------------------------------------
-        // 3. UNIDADES ORGANIZATIVAS (Específicas de la sede principal)
+        // 3. UNIDADES ORGANIZATIVAS (Específicas de la sede principal y secundarias)
         // ------------------------------------------------------------------
         $unidades = [
             'UCI (Intensivos)',
@@ -70,6 +70,15 @@ class DatabaseSeeder extends Seeder
             );
         }
 
+        // Sembrar las mismas unidades para las sedes Escalón y Santa Elena para que tengan áreas seleccionables
+        foreach ([$sedeEscalon, $sedeSantaElena] as $s) {
+            foreach ($unidades as $nombre) {
+                Unidad::firstOrCreate(
+                    ['nombre_unidad' => $nombre, 'id_sede' => $s->id_sede]
+                );
+            }
+        }
+
         // ------------------------------------------------------------------
         // 4. CUENTAS DE USUARIO REALES
         // ------------------------------------------------------------------
@@ -77,6 +86,7 @@ class DatabaseSeeder extends Seeder
             ['correo' => 'admin@rchhospital.sv'],
             [
                 'id_rol'   => $rolAdmin->id_rol,
+                'id_sede'  => null, // Administrador global
                 'nombre'   => 'Carlos',
                 'apellido' => 'Administrador',
                 'password' => Hash::make('Admin2024!'),
@@ -88,6 +98,7 @@ class DatabaseSeeder extends Seeder
             ['correo' => 'coordinador@rchhospital.sv'],
             [
                 'id_rol'   => $rolCoordi->id_rol,
+                'id_sede'  => $sedeCentral->id_sede,
                 'nombre'   => 'María',
                 'apellido' => 'García',
                 'password' => Hash::make('Coord2024!'),
@@ -99,6 +110,7 @@ class DatabaseSeeder extends Seeder
             ['correo' => 'tecnico@rchhospital.sv'],
             [
                 'id_rol'   => $rolTecnico->id_rol,
+                'id_sede'  => $sedeCentral->id_sede,
                 'nombre'   => 'Jorge',
                 'apellido' => 'Martínez',
                 'password' => Hash::make('Tec2024!'),
@@ -110,6 +122,7 @@ class DatabaseSeeder extends Seeder
             ['correo' => 'solicitante@rchhospital.sv'],
             [
                 'id_rol'   => $rolSolicit->id_rol,
+                'id_sede'  => $sedeCentral->id_sede,
                 'nombre'   => 'Ana',
                 'apellido' => 'López',
                 'password' => Hash::make('Sol2024!'),
@@ -121,6 +134,7 @@ class DatabaseSeeder extends Seeder
             ['correo' => 'roberto.gomez@rchhospital.sv'],
             [
                 'id_rol'   => $rolSolicit->id_rol,
+                'id_sede'  => $sedeCentral->id_sede,
                 'nombre'   => 'Roberto',
                 'apellido' => 'Gómez',
                 'password' => Hash::make('Doctor2024!'),
@@ -138,6 +152,7 @@ class DatabaseSeeder extends Seeder
             [
                 'id_usuario_solicitante' => $userSolicit1->id_usuario,
                 'id_unidad'              => $unidadesModels['Quirófano 4']->id_unidad,
+                'tipo_servicio'          => 'Soporte Técnico',
                 'descripcion'            => 'Falla en la Unidad Central de Enfriamiento del Quirófano 4. La temperatura ambiental supera los 25 grados y pone en riesgo las cirugías programadas.',
                 'prioridad'              => 'Alta',
                 'estado_solicitud'       => 'Abierta',
@@ -151,6 +166,7 @@ class DatabaseSeeder extends Seeder
             [
                 'id_usuario_solicitante' => $userSolicit1->id_usuario,
                 'id_unidad'              => $unidadesModels['Quirófano 1']->id_unidad,
+                'tipo_servicio'          => 'Servicios Generales',
                 'descripcion'            => 'Protocolo de Esterilización profundo post-cirugía cardiovascular de alta complejidad en Quirófano 1.',
                 'prioridad'              => 'Media',
                 'estado_solicitud'       => 'En Proceso',
@@ -174,6 +190,7 @@ class DatabaseSeeder extends Seeder
             [
                 'id_usuario_solicitante' => $userSolicit1->id_usuario,
                 'id_unidad'              => $unidadesModels['Pabellón A']->id_unidad,
+                'tipo_servicio'          => 'Soporte Técnico',
                 'descripcion'            => 'Mantenimiento Preventivo Mensual de tomacorrientes e iluminación general en Pabellón A.',
                 'prioridad'              => 'Baja',
                 'estado_solicitud'       => 'Cerrada',
@@ -219,6 +236,7 @@ class DatabaseSeeder extends Seeder
             [
                 'id_usuario_solicitante' => $userSolicit2->id_usuario, // Dr. Roberto Gómez
                 'id_unidad'              => $unidadesModels['UCI (Intensivos)']->id_unidad,
+                'tipo_servicio'          => 'Soporte Técnico',
                 'descripcion'            => 'Fallo intermitente en el encendido y conexión de energía en el Monitor B40 (GE Healthcare) de la UCI Cama 4. El personal de enfermería reporta que el cable parece tener un falso contacto en la entrada posterior del equipo.',
                 'prioridad'              => 'Alta',
                 'estado_solicitud'       => 'En Proceso',

@@ -15,11 +15,11 @@ class ValidarIntegridadTicket
      */
     public function handle(Request $request, Closure $next)
     {
-        // Obtener el ID de la ruta si existe (puede ser id de solicitud o de asignacion)
+
         $id = $request->route('id') ?? $request->route('solicitud') ?? $request->route('asignacion');
 
         if ($id) {
-            // 1. Verificar si el ID corresponde a una solicitud
+
             $solicitud = Solicitud::find($id);
 
             if ($solicitud) {
@@ -37,7 +37,7 @@ class ValidarIntegridadTicket
                     ], 500);
                 }
             } else {
-                // 2. Verificar si el ID corresponde a una asignación de técnico
+
                 $asignacion = Asignacion::with('solicitud')->find($id);
 
                 if ($asignacion && $asignacion->solicitud) {

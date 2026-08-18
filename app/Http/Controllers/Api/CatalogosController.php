@@ -56,4 +56,62 @@ class CatalogosController extends Controller
             'unidad'  => $unidad->load('sede'),
         ], 201);
     }
+
+    public function actualizarSede(Request $request, string $id)
+    {
+        $sede = Sede::findOrFail($id);
+        $request->validate([
+            'nombre_sede' => 'required|string|max:100',
+            'direccion'   => 'required|string',
+        ]);
+
+        $sede->update($request->only(['nombre_sede', 'direccion']));
+
+        return response()->json([
+            'mensaje' => 'Sede actualizada con éxito.',
+            'sede'    => $sede,
+        ]);
+    }
+
+    public function eliminarSede(string $id)
+    {
+        $sede = Sede::withCount('unidades')->findOrFail($id);
+        if ($sede->unidades_count > 0) {
+            return response()->json([
+                'message' => 'No se puede eliminar la sede porque tiene unidades médicas asociadas. Elimine o mueva las unidades primero.',
+            ], 422);
+        }
+
+        $sede->delete();
+
+        return response()->json([
+            'mensaje' => 'Sede eliminada con éxito.',
+        ]);
+    }
+
+    public function actualizarUnidad(Request $request, string $id)
+    {
+        $unidad = Unidad::findOrFail($id);
+        $request->validate([
+            'nombre_unidad' => 'required|string|max:100',
+            'id_sede'       => 'sometimes|exists:sedes,id_sede',
+        ]);
+
+        $unidad->update($request->only(['nombre_unidad', 'id_sede']));
+
+        return response()->json([
+            'mensaje' => 'Unidad actualizada con éxito.',
+            'unidad'  => $unidad->load('sede'),
+        ]);
+    }
+
+    public function eliminarUnidad(string $id)
+    {
+        $unidad = Unidad::findOrFail($id);
+        $unidad->delete();
+
+        return response()->json([
+            'mensaje' => 'Unidad eliminada con éxito.',
+        ]);
+    }
 }

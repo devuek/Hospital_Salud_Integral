@@ -111,9 +111,22 @@ class SolicitudesController extends Controller
             'titulo'      => 'sometimes|string|max:200',
             'descripcion' => 'sometimes|string',
             'id_unidad'   => 'sometimes|exists:unidades,id_unidad',
+            'prioridad'   => 'sometimes|string',
         ]);
 
-        $solicitud->update($request->only(['titulo', 'descripcion', 'id_unidad']));
+        $valoresAnteriores = [
+            'titulo' => $solicitud->titulo,
+            'descripcion' => $solicitud->descripcion,
+            'prioridad' => $solicitud->prioridad,
+        ];
+
+        $solicitud->update($request->only(['titulo', 'descripcion', 'id_unidad', 'prioridad']));
+
+        foreach ($valoresAnteriores as $campo => $valorAnterior) {
+            if ($request->has($campo) && $request->input($campo) !== $valorAnterior) {
+                $this->registrarHistorial($solicitud, $request->user()->id_usuario, $campo, $valorAnterior, $request->input($campo));
+            }
+        }
 
         return response()->json([
             'mensaje'   => 'Solicitud actualizada con éxito.',
@@ -156,6 +169,8 @@ class SolicitudesController extends Controller
             'url_recurso'  => Storage::url($path),
             'tipo_archivo' => $request->file('archivo')->getMimeType(),
         ]);
+
+        $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'evidencia', null, $evidencia->url_recurso);
 
         return response()->json([
             'mensaje'   => 'Archivo de evidencia adjuntado con éxito.',

@@ -20,7 +20,7 @@ function mapearAlFrontend(s) {
         estadoFE = 'Pendiente';
     } else if (est === 'Asignada' || est === 'En Proceso') {
         estadoFE = 'En Proceso';
-    } else if (est === 'Cerrada' || est === 'Validada') {
+    } else if (est === 'Cerrada' || est === 'Validada' || est === 'Resuelta') {
         estadoFE = 'Completada';
     } else if (est === 'Cancelada') {
         estadoFE = 'Cancelada';
@@ -31,9 +31,14 @@ function mapearAlFrontend(s) {
     const esAsignacion = !!s.id_asignacion;
     const idAsignacion = esAsignacion ? s.id_asignacion : (s.asignacion ? s.asignacion.id_asignacion : null);
 
+    const isPausada = esAsignacion ? s.is_pausada : (s.asignacion ? s.asignacion.is_pausada : false);
+    const motivoPausa = esAsignacion ? s.motivo_pausa : (s.asignacion ? s.asignacion.motivo_pausa : null);
+
     return {
         id: solicitud.id_solicitud || s.id_solicitud,
         id_asignacion: idAsignacion,
+        is_pausada: !!isPausada,
+        motivo_pausa: motivoPausa,
         titulo: solicitud.titulo || s.titulo,
         subtitulo: solicitud.tipo_servicio || s.tipo_servicio || 'Soporte Técnico',
         descripcion: solicitud.descripcion || s.descripcion,
@@ -93,13 +98,18 @@ async function obtenerIdUnidadPorDefecto() {
     return null;
 }
 
+function normalizarRol(rol) {
+    if (!rol) return '';
+    return rol.toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
 export default {
     async resumen() {
         const user = authService.getUser();
-        const rol = user?.rol;
+        const rol = normalizarRol(user?.rol);
 
         // Si es coordinador o admin, usamos el dashboard de reportes del backend local
-        if (rol === 'coordinador' || rol === 'admin') {
+        if (rol === 'coordinador' || rol === 'administrador' || rol === 'admin') {
             try {
                 const response = await api.get('/reportes/dashboard');
                 const porEstado = response.data.por_estado || {};
@@ -120,9 +130,9 @@ export default {
             }
         }
 
-        // Si falla o es otro rol (solicitante o técnico), calculamos el resumen localmente del listado
         try {
-            const list = await this.listar();
+            const listData = await this.listar();
+            const list = Array.isArray(listData) ? listData : (listData.data ?? []);
             const pendientes = list.filter(s => s.estado === 'Pendiente').length;
             const enProceso = list.filter(s => s.estado === 'En Proceso').length;
             const completadas = list.filter(s => s.estado === 'Completada').length;
@@ -133,19 +143,19 @@ export default {
                 total: list.length
             };
         } catch (e) {
-            console.error(e);
+            console.error('Error calculando el resumen local:', e);
             return { pendientes: 0, en_proceso: 0, completadas: 0, total: 0 };
         }
     },
 
     async listar(params = {}) {
         const user = authService.getUser();
-        const rol = user?.rol;
+        const rol = normalizarRol(user?.rol);
         let url = '/solicitante/solicitudes';
 
         if (rol === 'tecnico') {
             url = '/tecnico/asignaciones';
-        } else if (rol === 'coordinador' || rol === 'admin') {
+        } else if (rol === 'coordinador' || rol === 'administrador' || rol === 'admin') {
             url = '/coordinador/solicitudes/historial';
         }
 
@@ -165,15 +175,56 @@ export default {
 
     async obtener(id) {
         const user = authService.getUser();
-        const rol = user?.rol;
+        const rol = normalizarRol(user?.rol);
         let url = `/solicitante/solicitudes/${id}`;
 
-        if (rol === 'tecnico' || rol === 'coordinador' || rol === 'admin') {
+        if (rol === 'tecnico' || rol === 'coordinador' || rol === 'administrador' || rol === 'admin') {
             url = `/solicitudes/${id}`;
         }
 
-        const response = await api.get(url);
-        return mapearAlFrontend(response.data.solicitud || response.data.asignacion || response.data);
+        try {
+            const response = await api.get(url);
+            
+            // Si response.data es el objeto de la solicitud directamente
+            if (response.data && response.data.id_solicitud) {
+                return mapearAlFrontend(response.data);
+            }
+            
+            return mapearAlFrontend(response.data.solicitud || response.data.asignacion || response.data);
+        } catch (e) {
+            // Fallback si la ruta directa dio error
+            if (url !== `/solicitante/solicitudes/${id}`) {
+                const fallbackRes = await api.get(`/solicitante/solicitudes/${id}`);
+                return mapearAlFrontend(fallbackRes.data.solicitud || fallbackRes.data);
+            }
+            throw e;
+        }
+    },
+
+    async historial(id) {
+        try {
+            const user = authService.getUser();
+            const rol = normalizarRol(user?.rol);
+            const url = (rol === 'coordinador' || rol === 'administrador' || rol === 'admin')
+                ? `/solicitudes/${id}`
+                : `/solicitante/solicitudes/${id}`;
+            
+            const response = await api.get(url);
+            const solData = response.data?.solicitud || response.data;
+            const hist = solData?.historial || [];
+            
+            return hist.map(h => ({
+                id: h.id_historial || h.id,
+                campo: h.campo_modificado || h.campo,
+                valor_anterior: h.valor_anterior,
+                valor_nuevo: h.valor_nuevo,
+                fecha: h.created_at || h.fecha,
+                usuario_nombre: h.usuario ? `${h.usuario.nombre} ${h.usuario.apellido}` : 'Sistema'
+            }));
+        } catch (e) {
+            console.error("Error al obtener historial:", e);
+            return [];
+        }
     },
 
     async crear(datos) {
@@ -217,7 +268,7 @@ export default {
 
     async actualizar(id, datos) {
         const user = authService.getUser();
-        const rol = user?.rol;
+        const rol = normalizarRol(user?.rol);
 
         // Si es técnico y está actualizando el estado de la tarea
         if (rol === 'tecnico' && datos.estado) {
@@ -232,7 +283,7 @@ export default {
         }
 
         // Si es coordinador o administrador (flujos de asignación o reasignación)
-        if (rol === 'coordinador' || rol === 'admin') {
+        if (rol === 'coordinador' || rol === 'administrador' || rol === 'admin') {
             let resSolicitud = null;
             if (datos.prioridad) {
                 const response = await api.patch(`/coordinador/solicitudes/${id}/clasificar`, {
@@ -245,19 +296,67 @@ export default {
                 const response = await api.post(`/coordinador/solicitudes/${id}/asignar`, {
                     id_usuario_tecnico: datos.tecnico_id
                 });
-                resSolicitud = response.data.solicitud;
+                resSolicitud = response.data.solicitud || response.data.asignacion?.solicitud;
             }
             if (resSolicitud) {
                 return mapearAlFrontend(resSolicitud);
             }
+            return { id };
         }
 
-        // Edición básica
+        // Edición básica para solicitante
         const response = await api.put(`/solicitante/solicitudes/${id}`, datos);
         return mapearAlFrontend(response.data.solicitud);
     },
 
+    async subirEvidencia(id, archivo) {
+        const formData = new FormData();
+        formData.append('archivo', archivo);
+        const response = await api.post(`/solicitante/solicitudes/${id}/evidencias`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data.evidencia;
+    },
+
+    async pausarAsignacion(idAsignacion, motivo) {
+        const response = await api.patch(`/tecnico/asignaciones/${idAsignacion}/pausar`, { motivo });
+        return response.data;
+    },
+
+    async reanudarAsignacion(idAsignacion) {
+        const response = await api.patch(`/tecnico/asignaciones/${idAsignacion}/reanudar`);
+        return response.data;
+    },
+
+    async reabrir(id, datos) {
+        const response = await api.post(`/coordinador/solicitudes/${id}/reabrir`, {
+            id_usuario_tecnico: datos.tecnico_id,
+            motivo: datos.motivo
+        });
+        return response.data;
+    },
+
+    async cancelar(id) {
+        const response = await api.patch(`/solicitante/solicitudes/${id}/cancelar`);
+        return response.data;
+    },
+
     async eliminar(id) {
-        await api.delete(`/solicitante/solicitudes/${id}`);
+        return this.cancelar(id);
+    },
+
+    async enviarEncuesta(idSolicitud, datos) {
+        const response = await api.post(`/solicitante/solicitudes/${idSolicitud}/encuesta`, datos);
+        return response.data;
+    },
+
+    async obtenerTiemposAtencion(params = {}) {
+        const response = await api.get('/reportes/tiempos-atencion', { params });
+        return response.data;
+    },
+
+    async obtenerTendencias(params = {}) {
+        const response = await api.get('/reportes/tendencias', { params });
+        return response.data;
     }
 };

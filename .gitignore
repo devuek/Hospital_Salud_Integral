@@ -28,3 +28,7 @@ Thumbs.db
 /hospital-salud-integral/
 WeMod-Setup.exe
 /scratch/
+*.odt
+.~lock.*
+*.pdf
+!reporte-solicitudes.pdf

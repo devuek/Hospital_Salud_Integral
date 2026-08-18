@@ -19,15 +19,73 @@
         <a href="#panel" @click.prevent="irAPanel" :class="['nav-link', activeTab === 'panel' ? 'active' : '']">Panel</a>
         <a href="#solicitudes" @click.prevent="irASolicitudes" :class="['nav-link', activeTab === 'solicitudes' ? 'active' : '']">Mis Solicitudes</a>
         <a href="#notificaciones" @click.prevent="toggleNotificaciones" :class="['nav-link', activeTab === 'notificaciones' ? 'active' : '']">Notificaciones</a>
-        <a href="#ayuda" @click.prevent="irAAyuda" :class="['nav-link', activeTab === 'ayuda' ? 'active' : '']">Ayuda</a>
       </nav>
 
       <div class="header-user">
-        <span class="bell-icon" @click="toggleNotificaciones" style="cursor: pointer;">
+        <!-- Buscador Global en Dashboard -->
+        <div id="dash-buscador-global" class="relative" style="position: relative; margin-right: 0.5rem;">
+          <div style="position: relative; display: flex; align-items: center;">
+            <svg style="position: absolute; left: 0.65rem; width: 0.95rem; height: 0.95rem; color: #94a3b8; pointer-events: none;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+            </svg>
+            <input
+              type="text"
+              v-model="buscarGlobal"
+              @focus="mostrarDropdownBuscar = true"
+              @keyup.escape="mostrarDropdownBuscar = false"
+              @keyup.enter="ejecutarBusqueda"
+              placeholder="Buscar ticket..."
+              style="width: 14rem; padding: 0.45rem 0.65rem 0.45rem 2rem; font-size: 0.8125rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; background: #f8fafc; color: #334155; outline: none; transition: all 0.2s;"
+            />
+            <button v-if="buscarGlobal" @click="buscarGlobal = ''; mostrarDropdownBuscar = false" style="position: absolute; right: 0.5rem; border: none; background: transparent; color: #94a3b8; cursor: pointer; display: flex;">
+              <svg style="width: 0.9rem; height: 0.9rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Dropdown resultados -->
+          <div
+            v-if="mostrarDropdownBuscar && buscarGlobal.trim().length >= 1"
+            style="position: absolute; right: 0; top: 100%; margin-top: 0.5rem; z-index: 50; width: 20rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; background: white; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); overflow: hidden;"
+          >
+            <div v-if="resultadosBusqueda.length === 0" style="padding: 1.5rem 1rem; text-align: center;">
+              <p style="font-size: 0.8125rem; color: #94a3b8;">Sin resultados para <strong>"{{ buscarGlobal }}"</strong></p>
+            </div>
+            <template v-else>
+              <div style="border-bottom: 1px solid #f1f5f9; background: #f8fafc; padding: 0.4rem 1rem;">
+                <p style="font-size: 0.75rem; font-weight: 600; color: #64748b;">{{ resultadosBusqueda.length }} resultado(s)</p>
+              </div>
+              <div style="max-height: 18rem; overflow-y: auto;">
+                <button
+                  v-for="sol in resultadosBusqueda"
+                  :key="sol.id"
+                  @click="irATicket(sol)"
+                  style="display: flex; width: 100%; align-items: flex-start; gap: 0.75rem; padding: 0.65rem 1rem; border: none; background: transparent; text-align: left; cursor: pointer; border-bottom: 1px solid #f8fafc;"
+                  onmouseover="this.style.background='#eff6ff'"
+                  onmouseout="this.style.background='transparent'"
+                >
+                  <span style="font-size: 0.625rem; font-weight: 700; text-transform: uppercase; border-radius: 9999px; padding: 0.15rem 0.5rem; background: #fef3c7; color: #b45309;">
+                    {{ sol.estado }}
+                  </span>
+                  <div style="flex: 1; min-width: 0;">
+                    <p style="font-size: 0.75rem; font-weight: 600; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0;">{{ sol.titulo || 'Sin título' }}</p>
+                    <p style="font-size: 0.6875rem; color: #2563eb; font-family: monospace; font-weight: 600; margin: 0.15rem 0 0 0;">{{ sol._folio }} · <span style="color: #64748b; font-family: sans-serif;">{{ sol.departamento || sol.ubicacion }}</span></p>
+                  </div>
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <span class="bell-icon" @click="toggleNotificaciones" style="cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center;">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 8a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 12 6 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M9.5 17a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
+          <span v-if="notificacionesNoLeidas.length > 0" style="position: absolute; top: -2px; right: -2px; width: 14px; height: 14px; background: #ef4444; color: white; border-radius: 9999px; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; line-height: 1;">
+            {{ notificacionesNoLeidas.length }}
+          </span>
         </span>
         <div class="user-info">
           <p class="user-name">{{ authStore.user?.name ?? 'Usuario' }}</p>
@@ -104,7 +162,7 @@
       <section class="table-card">
         <div class="table-header">
           <h3>Solicitudes Recientes</h3>
-          <a href="#" class="view-all-link">Ver todo el historial</a>
+          <a href="#" @click.prevent="irASolicitudes" class="view-all-link">Ver todo el historial</a>
         </div>
 
         <p v-if="loading" class="table-loading">Cargando solicitudes...</p>
@@ -122,8 +180,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="solicitud in solicitudes" :key="solicitud.id">
-              <td class="cell-id">#SOL-{{ solicitud.id }}</td>
+            <tr v-for="solicitud in solicitudes" :key="solicitud.id" @click="verDetalle(solicitud.id)" class="hover-row" style="cursor: pointer;">
+              <td class="cell-id">#SOL-{{ abreviarId(solicitud.id) }}</td>
              <td>
     <p class="cell-titulo">{{ solicitud.titulo }}</p>
     <p class="cell-subtitulo">{{ solicitud.subtitulo }}</p>
@@ -136,7 +194,7 @@
                 </span>
               </td>
               <td>
-                <a href="#" class="details-link">Detalles ›</a>
+                <router-link :to="'/solicitudes/' + solicitud.id" class="details-link" @click.stop>Detalles ›</router-link>
               </td>
             </tr>
             <tr v-if="solicitudes.length === 0">
@@ -150,35 +208,48 @@
         </div>
       </section>
 
-      <div class="help-banner">
-        <div class="help-text">
-          <span class="help-icon">?</span>
-          <div>
-            <p class="help-title">¿Necesitas ayuda urgente?</p>
-            <p class="help-subtitle">Si es una emergencia técnica, llama a la extensión 100 de Mantenimiento Crítico.</p>
-          </div>
-        </div>
-        <button class="contact-btn">Contactar Soporte</button>
-      </div>
+
     </main>
 
-    <!-- Modal de Notificaciones -->
+    <!-- Modal / Popover de Notificaciones (sin difuminación molesta) -->
     <div v-if="showNotiModal" class="noti-modal-overlay" @click.self="showNotiModal = false">
       <div class="noti-modal-content">
         <div class="noti-header">
-          <h3>Centro de Notificaciones</h3>
-          <button @click="showNotiModal = false">&times;</button>
+          <div>
+            <h3>Centro de Notificaciones</h3>
+            <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 500;">
+              {{ notificacionesNoLeidas.length }} no leída(s)
+            </span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <button
+              v-if="notificacionesNoLeidas.length > 0"
+              @click="marcarTodasComoLeidas"
+              style="background: transparent; border: none; font-size: 0.72rem; color: #2563eb; font-weight: 600; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 4px;"
+              title="Marcar todas como leídas"
+            >
+              Marcar leídas
+            </button>
+            <button @click="showNotiModal = false" style="background: none; border: none; font-size: 1.25rem; color: #94a3b8; cursor: pointer; line-height: 1;">&times;</button>
+          </div>
         </div>
         <div class="noti-body">
-          <div class="noti-item active">
-            <p class="noti-title">Nueva respuesta en ticket #SOL-1</p>
-            <p class="noti-desc">El técnico asignado ha comenzado la reparación de aire acondicionado.</p>
-            <span class="noti-time">Hace 5 minutos</span>
+          <div
+            v-for="n in listaNotificaciones"
+            :key="n.id"
+            class="noti-item"
+            :class="{ active: !n.leida }"
+            @click="clickNotificacion(n)"
+          >
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;">
+              <p class="noti-title" :style="{ fontWeight: !n.leida ? '700' : '500' }">{{ n.titulo }}</p>
+              <span v-if="!n.leida" style="width: 7px; height: 7px; border-radius: 9999px; background: #2563eb; flex-shrink: 0; margin-top: 4px;"></span>
+            </div>
+            <p class="noti-desc">{{ n.descripcion }}</p>
+            <span class="noti-time">{{ n.tiempo }}</span>
           </div>
-          <div class="noti-item">
-            <p class="noti-title">Sistema de Mantenimiento Integrado</p>
-            <p class="noti-desc">Bienvenido al nuevo panel de solicitudes del Hospital Salud Integral.</p>
-            <span class="noti-time">Hace 1 día</span>
+          <div v-if="listaNotificaciones.length === 0" style="padding: 2rem 1rem; text-align: center; color: #94a3b8; font-size: 0.8125rem;">
+            No tienes notificaciones pendientes.
           </div>
         </div>
       </div>
@@ -205,8 +276,112 @@ const totalSolicitudes = ref(0);
 const loading = ref(true);
 const error = ref('');
 
+const buscarGlobal = ref('');
+const mostrarDropdownBuscar = ref(false);
+
+const resultadosBusqueda = computed(() => {
+  const raw = buscarGlobal.value.trim().toLowerCase();
+  const q = raw.replace(/^#(sol|req)-/i, '').replace(/^#/i, '');
+  if (!q) return [];
+
+  return (solicitudes.value || []).filter(s => {
+    const folio = abreviarId(s.id).toLowerCase();
+    return (
+      folio.includes(q) ||
+      `sol-${folio}`.includes(q) ||
+      (s.id && s.id.toString().toLowerCase().includes(q)) ||
+      (s.titulo && s.titulo.toLowerCase().includes(q)) ||
+      (s.departamento && s.departamento.toLowerCase().includes(q)) ||
+      (s.ubicacion && s.ubicacion.toLowerCase().includes(q)) ||
+      (s.estado && s.estado.toLowerCase().includes(q)) ||
+      (s.prioridad && s.prioridad.toLowerCase().includes(q)) ||
+      (s.descripcion && s.descripcion.toLowerCase().includes(q))
+    );
+  }).map(s => ({ ...s, _folio: `#SOL-${abreviarId(s.id)}` })).slice(0, 8);
+});
+
+function ejecutarBusqueda() {
+  if (resultadosBusqueda.value.length === 1) {
+    irATicket(resultadosBusqueda.value[0]);
+  } else {
+    mostrarDropdownBuscar.value = true;
+  }
+}
+
+function irATicket(sol) {
+  mostrarDropdownBuscar.value = false;
+  buscarGlobal.value = '';
+  router.push(`/solicitudes/${sol.id}`);
+}
+
 const activeTab = ref('panel');
 const showNotiModal = ref(false);
+const notifsLeidas = ref(new Set(JSON.parse(localStorage.getItem('solicitante_notif_leidas') || '[]')));
+
+function guardarNotifsLeidas() {
+  localStorage.setItem('solicitante_notif_leidas', JSON.stringify(Array.from(notifsLeidas.value)));
+}
+
+const listaNotificaciones = computed(() => {
+  const notifs = [];
+  const list = solicitudes.value || [];
+
+  list.forEach(s => {
+    const folio = `#SOL-${abreviarId(s.id)}`;
+    if (s.estado === 'En Proceso') {
+      const idNotif = `notif-proceso-${s.id}`;
+      notifs.push({
+        id: idNotif,
+        solicitudId: s.id,
+        titulo: `Ticket ${folio} en atención`,
+        descripcion: `El equipo técnico ha comenzado la atención de tu solicitud: ${s.titulo || s.subtitulo || 'Mantenimiento'}.`,
+        tiempo: s.fecha ? `Fecha: ${s.fecha}` : 'En curso',
+        leida: notifsLeidas.value.has(idNotif),
+      });
+    } else if (s.estado === 'Completada') {
+      const idNotif = `notif-completada-${s.id}`;
+      notifs.push({
+        id: idNotif,
+        solicitudId: s.id,
+        titulo: `Ticket ${folio} completado`,
+        descripcion: `Tu solicitud de ${s.titulo || s.subtitulo || 'Servicio'} ha sido finalizada con éxito.`,
+        tiempo: s.fecha ? `Fecha: ${s.fecha}` : 'Completado',
+        leida: notifsLeidas.value.has(idNotif),
+      });
+    }
+  });
+
+  // Notificación del sistema fija
+  const notifBienvenidaId = 'notif-sistema-bienvenida';
+  notifs.push({
+    id: notifBienvenidaId,
+    solicitudId: null,
+    titulo: 'Sistema de Mantenimiento Hospitalario',
+    descripcion: 'Bienvenido al portal de solicitudes del Hospital Salud Integral.',
+    tiempo: 'Sistema',
+    leida: notifsLeidas.value.has(notifBienvenidaId),
+  });
+
+  return notifs;
+});
+
+const notificacionesNoLeidas = computed(() => {
+  return listaNotificaciones.value.filter(n => !n.leida);
+});
+
+function marcarTodasComoLeidas() {
+  listaNotificaciones.value.forEach(n => notifsLeidas.value.add(n.id));
+  guardarNotifsLeidas();
+}
+
+function clickNotificacion(n) {
+  notifsLeidas.value.add(n.id);
+  guardarNotifsLeidas();
+  if (n.solicitudId) {
+    showNotiModal.value = false;
+    router.push(`/solicitudes/${n.solicitudId}`);
+  }
+}
 
 function irAPanel() {
   activeTab.value = 'panel';
@@ -225,14 +400,6 @@ function toggleNotificaciones() {
   showNotiModal.value = !showNotiModal.value;
 }
 
-function irAAyuda() {
-  activeTab.value = 'ayuda';
-  setTimeout(() => {
-    const el = document.querySelector('.help-banner');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 50);
-}
-
 const firstName = computed(() => {
   const nombre = authStore.user?.name ?? 'Usuario';
   return nombre.split(' ')[0];
@@ -243,17 +410,46 @@ const userInitial = computed(() => {
   return nombre.charAt(0).toUpperCase();
 });
 
+function abreviarId(uuid) {
+  if (!uuid) return '';
+  const clean = uuid.replace(/-/g, '');
+  let hash1 = 0;
+  for (let i = 0; i < 16; i++) {
+    hash1 = ((hash1 << 5) - hash1) + clean.charCodeAt(i);
+    hash1 |= 0;
+  }
+  let hash2 = 0;
+  for (let i = 16; i < clean.length; i++) {
+    hash2 = ((hash2 << 5) - hash2) + clean.charCodeAt(i);
+    hash2 |= 0;
+  }
+  const h1 = Math.abs(hash1).toString(36).toUpperCase().padStart(4, '0');
+  const h2 = Math.abs(hash2).toString(36).toUpperCase().padStart(5, '0');
+  return `${h1}${h2}`.substring(0, 9);
+}
+
+function verDetalle(id) {
+  router.push(`/solicitudes/${id}`);
+}
+
 function formatFecha(fecha) {
-  if (!fecha) return '';
-  const date = new Date(fecha);
-  return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (!fecha) return '—';
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const partes = fecha.substring(0, 10).split('-');
+  if (partes.length < 3) return fecha;
+  const dia = parseInt(partes[2], 10);
+  const mes = meses[parseInt(partes[1], 10) - 1] ?? partes[1];
+  const anio = partes[0];
+  return `${dia} ${mes} ${anio}`;
 }
 
 function estadoClase(estado) {
-  if (estado === 'Pendiente') return 'status-pendiente';
-  if (estado === 'En Proceso') return 'status-proceso';
-  if (estado === 'Completada') return 'status-completada';
-  return '';
+  const map = {
+    'Pendiente': 'status-pendiente',
+    'En Proceso': 'status-proceso',
+    'Completada': 'status-completada',
+  };
+  return map[estado] ?? '';
 }
 
 async function cerrarSesion() {
@@ -287,8 +483,6 @@ onMounted(async () => {
   const tab = route.query.tab;
   if (tab === 'solicitudes') {
     irASolicitudes();
-  } else if (tab === 'ayuda') {
-    irAAyuda();
   }
 });
 </script>
@@ -334,14 +528,15 @@ onMounted(async () => {
 .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; }
 .user-avatar:hover { background: #1d4ed8; }
 
-/* Modal de Notificaciones */
+/* Modal de Notificaciones limpio sin difuminación */
 .noti-modal-overlay {
   position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: flex-end;
-  background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); padding: 1.5rem;
+  background: transparent; padding: 1.5rem;
 }
 .noti-modal-content {
-  width: 100%; max-width: 380px; background: #fff; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; margin-top: 4.5rem;
+  width: 100%; max-width: 380px; background: #fff; border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; margin-top: 3.5rem;
 }
 .noti-header {
   display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid #f1f5f9;
@@ -386,6 +581,7 @@ onMounted(async () => {
 .solicitudes-table { width: 100%; border-collapse: collapse; }
 .solicitudes-table th { text-align: left; font-size: 0.75rem; color: #94a3b8; font-weight: 700; letter-spacing: 0.04em; padding: 0.6rem 0.5rem; border-bottom: 1px solid #e5e9f0; }
 .solicitudes-table td { padding: 0.9rem 0.5rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.hover-row:hover { background-color: #f8fafc; }
 .cell-id { font-weight: 700; }
 .cell-titulo { font-weight: 600; margin: 0; }
 .cell-subtitulo { font-size: 0.8rem; color: #94a3b8; margin: 0.1rem 0 0; }

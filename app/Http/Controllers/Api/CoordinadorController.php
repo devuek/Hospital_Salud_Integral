@@ -31,19 +31,36 @@ class CoordinadorController extends Controller
 
     public function historialCompleto(Request $request)
     {
-        $query = Solicitud::with(['solicitante', 'unidad.sede', 'asignacion.tecnico', 'evidencias']);
+        $query = Solicitud::with(['solicitante', 'unidad.sede', 'asignacion.tecnico', 'asignacion.bitacoras', 'evidencias']);
 
         if ($request->filled('buscar')) {
-            $term = '%' . $request->buscar . '%';
-            $query->where(function ($q) use ($term) {
-                $q->where('titulo', 'like', $term)
-                  ->orWhere('descripcion', 'like', $term)
+            $raw = trim($request->buscar);
+            $clean = preg_replace('/^#(sol|req)-/i', '', $raw);
+            $clean = ltrim($clean, '#');
+            $term = '%' . $clean . '%';
+            $termRaw = '%' . $raw . '%';
+
+            $query->where(function ($q) use ($term, $termRaw) {
+                $q->where('titulo', 'like', $termRaw)
+                  ->orWhere('descripcion', 'like', $termRaw)
                   ->orWhere('id_solicitud', 'like', $term)
-                  ->orWhereHas('unidad', function ($qu) use ($term) {
-                      $qu->where('nombre_unidad', 'like', $term)
-                        ->orWhereHas('sede', function ($qs) use ($term) {
-                            $qs->where('nombre_sede', 'like', $term);
+                  ->orWhere('codigo_verificacion', 'like', $term)
+                  ->orWhere('prioridad', 'like', $termRaw)
+                  ->orWhere('estado_solicitud', 'like', $termRaw)
+                  ->orWhereHas('unidad', function ($qu) use ($termRaw) {
+                      $qu->where('nombre_unidad', 'like', $termRaw)
+                        ->orWhereHas('sede', function ($qs) use ($termRaw) {
+                            $qs->where('nombre_sede', 'like', $termRaw);
                         });
+                  })
+                  ->orWhereHas('solicitante', function ($qs) use ($termRaw) {
+                      $qs->where('nombre', 'like', $termRaw)
+                        ->orWhere('apellido', 'like', $termRaw)
+                        ->orWhere('correo', 'like', $termRaw);
+                  })
+                  ->orWhereHas('asignacion.tecnico', function ($qt) use ($termRaw) {
+                      $qt->where('nombre', 'like', $termRaw)
+                        ->orWhere('apellido', 'like', $termRaw);
                   });
             });
         }
@@ -107,9 +124,9 @@ class CoordinadorController extends Controller
     {
         $solicitud = Solicitud::findOrFail($id);
 
-        if (!in_array($solicitud->estado_solicitud, ['Abierta', 'Devuelta'])) {
+        if (in_array($solicitud->estado_solicitud, ['Cerrada', 'Validada', 'Cancelada'])) {
             return response()->json([
-                'mensaje' => 'Solo se pueden asignar solicitudes que se encuentren abiertas o devueltas en el sistema.',
+                'mensaje' => 'No se puede asignar un técnico a una solicitud finalizada o cancelada.',
             ], 422);
         }
 
@@ -139,6 +156,7 @@ class CoordinadorController extends Controller
         return response()->json([
             'mensaje'    => 'La solicitud ha sido asignada formalmente al técnico correspondiente.',
             'asignacion' => $asignacion->load('tecnico'),
+            'solicitud'  => $solicitud->fresh()->load(['unidad.sede', 'asignacion.tecnico', 'asignacion.bitacoras', 'evidencias', 'historial.usuario', 'solicitante']),
         ], 201);
     }
 
@@ -272,6 +290,60 @@ class CoordinadorController extends Controller
             'mensaje' => 'La solicitud de reasignación ha sido aprobada y el ticket reasignado con éxito.',
             'reasignacion' => $reasignacion->load('solicitud'),
         ]);
+    }
+
+    public function reabrir(Request $request, string $id)
+    {
+        $solicitud = Solicitud::findOrFail($id);
+
+        $request->validate([
+            'id_usuario_tecnico' => 'required|exists:users,id_usuario',
+            'motivo'             => 'required|string|min:5',
+        ]);
+
+        $tecnico = User::with('rol')->findOrFail($request->id_usuario_tecnico);
+        if (!$tecnico->tieneRol('Técnico')) {
+            return response()->json(['mensaje' => 'El usuario seleccionado no posee el rol de Técnico.'], 422);
+        }
+
+        $estadoAnterior = $solicitud->estado_solicitud;
+
+        // Eliminar asignaciones previas y crear una nueva
+        Asignacion::where('id_solicitud', $solicitud->id_solicitud)->delete();
+
+        $asignacion = Asignacion::create([
+            'id_solicitud'           => $solicitud->id_solicitud,
+            'id_usuario_tecnico'     => $request->id_usuario_tecnico,
+            'id_usuario_coordinador' => $request->user()->id_usuario,
+            'fecha_asignacion'       => now(),
+        ]);
+
+        // Cambiar el estado de la solicitud a 'Asignada'
+        $solicitud->update(['estado_solicitud' => 'Asignada']);
+
+        $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'estado_solicitud', $estadoAnterior, 'Asignada');
+        $this->registrarHistorial($solicitud, $request->user()->id_usuario, 'motivo_reapertura', null, $request->motivo);
+
+        // Crear registro en la bitacora de la nueva asignacion indicando la reapertura
+        \App\Models\Bitacora::create([
+            'id_asignacion' => $asignacion->id_asignacion,
+            'descripcion_trabajo' => '[TICKET REABIERTO] Motivo: ' . $request->motivo,
+            'fecha_inicio' => now(),
+        ]);
+
+        return response()->json([
+            'mensaje' => 'El ticket ha sido reabierto y reasignado exitosamente.',
+            'solicitud' => $solicitud->load(['unidad.sede', 'asignacion.tecnico', 'asignacion.bitacoras', 'evidencias']),
+        ]);
+    }
+
+    public function logsAuditoria(Request $request)
+    {
+        $logs = HistorialCambio::with(['solicitud', 'usuario'])
+            ->latest()
+            ->paginate($request->integer('per_page', 25));
+
+        return response()->json($logs);
     }
 
     private function registrarHistorial(Solicitud $solicitud, string $idUsuario, string $campo, ?string $anterior, ?string $nuevo): void

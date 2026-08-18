@@ -109,7 +109,16 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       user.value = await authService.fetchCurrentUser();
     } catch (err) {
-      user.value = null;
+      const status = err?.response?.status;
+      console.warn('[auth.js] fetchUser falló con status:', status);
+      // Token inválido o expirado → limpiar y redirigir a login
+      if (status === 401 || status === 403) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_last_activity');
+        user.value = null;
+        window.location.href = '/login?expired=1';
+      }
     }
     return user.value;
   }

@@ -1,17 +1,17 @@
 /**
  * router/index.js
- * Definición de rutas y guard global de autenticación.
+ * Definición de rutas y guard global de autenticación con control de acceso por roles.
  *
  * Convención para módulos nuevos:
  * - meta.requiresAuth = true  -> requiere sesión activa
  * - meta.requiresGuest = true -> solo accesible SIN sesión (ej. login)
+ * - meta.roles = [...]        -> lista de roles con permisos de acceso a la ruta
  */
 
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../views/auth/LoginView.vue';
 import DashboardView from '../views/dashboard/DashboardView.vue';
 import NuevaSolicitudView from '../views/solicitudes/NuevaSolicitudView.vue';
-import PanelCoordinacionView from '../views/coordinacion/PanelCoordinacionView.vue';
 import DetalleSolicitudView from '../views/coordinacion/DetalleSolicitudView.vue';
 import MisTareasView from '../views/tecnico/MisTareasView.vue';
 import DetalleTareaView from '../views/tecnico/DetalleTareaView.vue';
@@ -28,49 +28,68 @@ const routes = [
     path: '/dashboard',
     name: 'dashboard',
     component: DashboardView,
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      roles: ['Solicitante'] 
+    },
   },
   {
     path: '/solicitudes/nueva',
     name: 'nueva-solicitud',
     component: NuevaSolicitudView,
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      roles: ['Solicitante'] 
+    },
   },
   {
     path: '/solicitudes/:id',
     name: 'detalle-solicitud',
     component: DetalleSolicitudView,
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      roles: ['Administrador', 'Coordinador', 'Técnico', 'Solicitante'] 
+    },
   },
   {
     path: '/coordinacion',
-    name: 'coordinacion',
-    component: PanelCoordinacionView,
-    meta: { requiresAuth: true },
+    redirect: '/admin',
   },
   {
     path: '/tareas',
     name: 'mis-tareas',
     component: MisTareasView,
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      roles: ['Técnico'] 
+    },
   },
   {
     path: '/tareas/:id',
     name: 'detalle-tarea',
     component: DetalleTareaView,
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      roles: ['Técnico'] 
+    },
   },
   {
     path: '/admin',
     name: 'admin',
     component: PanelAdminView,
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      roles: ['Administrador', 'Coordinador'] 
+    },
   },
   {
     path: '/reportes',
     name: 'reportes',
     component: ReportesView,
-    meta: { requiresAuth: true },
+    meta: { 
+      requiresAuth: true, 
+      roles: ['Administrador', 'Coordinador'] 
+    },
   },
   {
     path: '/login',
@@ -86,8 +105,6 @@ const router = createRouter({
 });
 
 // Devuelve el nombre de ruta correcto según el rol del usuario.
-// Maneja tanto los valores actuales ('Administrador') como valores
-// cacheados en localStorage de versiones anteriores ('admin').
 function esAdmin(rol) {
   if (!rol) return false;
   const r = rol.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -98,7 +115,7 @@ function rutaSegunRol(rol) {
   if (!rol) return 'dashboard';
   if (esAdmin(rol)) return 'admin';
   const r = rol.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  if (r === 'coordinador') return 'coordinacion';
+  if (r === 'coordinador') return 'admin';
   if (r === 'tecnico') return 'mis-tareas';
   return 'dashboard'; // Solicitante u otros
 }
@@ -117,12 +134,23 @@ router.beforeEach((to) => {
     return { name: rutaSegunRol(user?.rol) };
   }
 
-  // PROTECCIÓN TOTAL: el admin NUNCA puede llegar al /dashboard de solicitantes.
-  // Si está autenticado y navega a /dashboard siendo admin → forzar a /admin.
-  if (isAuthenticated && to.name === 'dashboard') {
+  // VALIDACIÓN Y BLINDAJE DE SEGURIDAD BASADO EN ROLES
+  if (isAuthenticated && to.meta.roles) {
     const user = authService.getUser();
-    if (esAdmin(user?.rol)) {
-      return { name: 'admin' };
+    let userRolNormalizado = user?.rol 
+      ? user.rol.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') 
+      : '';
+    if (userRolNormalizado === 'admin') {
+      userRolNormalizado = 'administrador';
+    }
+    
+    const rolesPermitidosNormalizados = to.meta.roles.map(r => 
+      r.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    );
+
+    // Si el rol del usuario no está autorizado para la ruta solicitada, lo redirige
+    if (!rolesPermitidosNormalizados.includes(userRolNormalizado)) {
+      return { name: rutaSegunRol(user?.rol) };
     }
   }
 });

@@ -13,15 +13,16 @@
       </div>
 
       <div class="header-search">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1 0 6.5 6.5a7.5 7.5 0 0 0 10.65 10.65z"/>
+          </svg>
+        </span>
         <input type="text" placeholder="Buscar activos o tareas..." />
       </div>
 
       <nav class="header-nav">
-        <a href="#" class="nav-link">Tablero</a>
-        <a href="#" class="nav-link active">Tareas</a>
-        <a href="#" class="nav-link">Inventario</a>
-        <a href="#" class="nav-link">Reportes</a>
+        <router-link to="/tareas" class="nav-link active">Tareas</router-link>
       </nav>
 
       <div class="header-actions">
@@ -40,12 +41,21 @@
 
       <div class="title-row">
         <h2 class="page-title">Tarea #MT-2024-08: Reparación de Monitor</h2>
-        <button class="report-problem-btn">⚠ Reportar Problema</button>
+        <button class="report-problem-btn" @click="abrirModalReporte">
+          <svg xmlns="http://www.w3.org/2000/svg" class="inline-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+          Reportar Problema
+        </button>
       </div>
 
       <div class="tag-row">
-        <span class="priority-badge priority-alta">PRIORIDAD: ALTA</span>
-        <span class="status-badge status-proceso">ESTADO: EN PROCESO</span>
+        <span class="priority-badge" :class="'priority-' + (solicitud.original?.prioridad || 'media').toLowerCase()">
+          PRIORIDAD: {{ (solicitud.original?.prioridad || 'MEDIA').toUpperCase() }}
+        </span>
+        <span class="status-badge" :class="'status-' + (solicitud.original?.estado_solicitud || 'proceso').toLowerCase().replace(' ', '-')">
+          ESTADO: {{ (solicitud.original?.estado_solicitud || 'EN PROCESO').toUpperCase() }}
+        </span>
       </div>
 
       <div class="content-grid">
@@ -116,19 +126,31 @@
 
         <div class="side-column">
           <section class="info-card">
-            <h3><span class="card-icon">📷</span> Evidencia de Finalización</h3>
+            <h3>
+              <span class="card-icon">
+                <svg class="h-4 w-4 text-blue-600 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </span>
+              Evidencia de Finalización
+            </h3>
 
-            <label class="upload-box" :class="{ 'upload-box-loading': subiendo }">
+            <label class="upload-box" :class="{ 'upload-box-loading': subiendo }" v-if="!tareaTerminada">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/jpg,application/pdf"
+                accept="image/jpeg,image/png,image/jpg"
                 class="upload-input"
                 :disabled="subiendo"
                 @change="subirEvidencia"
               />
-              <span class="upload-icon">📷</span>
+              <span class="upload-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                </svg>
+              </span>
               <p class="upload-text">{{ subiendo ? 'Subiendo...' : 'Subir Foto de Finalización' }}</p>
-              <p class="upload-hint">JPG, PNG o PDF, máx. 10MB</p>
+              <p class="upload-hint">JPG, JPEG o PNG, máx. 5MB</p>
             </label>
 
             <p v-if="errorEvidencia" class="upload-error">{{ errorEvidencia }}</p>
@@ -144,24 +166,58 @@
                 class="evidence-item"
               >
                 <img v-if="esImagen(ev)" :src="urlEvidencia(ev)" :alt="ev.nombre_archivo" />
-                <div v-else class="evidence-doc">📄</div>
+                <div v-else class="evidence-doc">
+                  <svg class="h-6 w-6 text-slate-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
               </a>
             </div>
           </section>
 
-          <section class="action-card">
+          <section class="action-card" v-if="!tareaTerminada">
             <label class="checklist-item">
               <input type="checkbox" v-model="confirmado" />
               <span>Asegúrese de haber documentado todas las refacciones utilizadas antes de finalizar.</span>
             </label>
 
-            <button class="finish-btn" :disabled="!confirmado">
-              ✓ FINALIZAR TRABAJO
+            <button class="finish-btn" :disabled="!confirmado" @click="finalizarTrabajo">
+              <svg class="h-4 w-4 inline-block mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              Finalizar Trabajo
             </button>
             <p class="finish-note">Al finalizar, se notificará al solicitante.</p>
 
-            <button class="pause-btn">⏸ Pausar Tarea (Esperando repuestos)</button>
-            <button class="cancel-btn">✕ Cancelar Tarea</button>
+            <button v-if="!tarea.is_pausada" class="pause-btn" @click="pausarTarea">
+              <svg class="h-4 w-4 inline-block mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Pausar Tarea (Esperando repuestos)
+            </button>
+            <button v-else class="pause-btn resume-btn" @click="reanudarTarea">
+              <svg class="h-4 w-4 inline-block mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Reanudar Tarea
+            </button>
+            <button class="cancel-btn" @click="abrirModalCancelar">
+              <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancelar Tarea
+            </button>
+          </section>
+
+          <section class="action-card tarea-cerrada-card" v-else>
+            <div class="cerrada-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" class="cerrada-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span>Tarea {{ solicitud.original?.estado_solicitud || 'Resuelta' }}</span>
+            </div>
+            <p class="cerrada-hint">Esta tarea ya fue completada. No se permiten más acciones.</p>
           </section>
 
           <section class="parts-card">
@@ -175,11 +231,261 @@
               <span>{{ parte.nombre }}</span>
               <span class="part-qty">{{ parte.cantidad }}</span>
             </div>
-            <button class="add-part-btn">+ Agregar Insumo</button>
+            <button class="add-part-btn" @click="agregarInsumo">+ Agregar Insumo</button>
           </section>
         </div>
       </div>
     </main>
+
+    <!-- TOAST NOTIFICACIÓN PREMIUM -->
+    <transition name="fade">
+      <div v-if="toast.show" class="fixed top-5 right-5 z-[100] flex w-full max-w-sm overflow-hidden rounded-2xl border bg-white/95 backdrop-blur-md shadow-2xl transition-all duration-300"
+           :class="{
+             'border-emerald-100 shadow-emerald-100/20': toast.type === 'success',
+             'border-rose-100 shadow-rose-100/20': toast.type === 'error',
+             'border-amber-100 shadow-amber-100/20': toast.type === 'warning'
+           }">
+        <div class="flex items-center gap-3 p-4 w-full">
+          <div class="flex-shrink-0">
+            <span v-if="toast.type === 'success'" class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+            <span v-else-if="toast.type === 'error'" class="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </span>
+            <span v-else class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </span>
+          </div>
+          <div class="flex-1 text-left">
+            <h4 class="text-xs font-bold text-slate-800">
+              {{ toast.type === 'success' ? 'Completado' : toast.type === 'error' ? 'Error' : 'Advertencia' }}
+            </h4>
+            <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">{{ toast.message }}</p>
+          </div>
+          <button @click="toast.show = false" class="text-slate-400 hover:text-slate-600 transition-colors focus:outline-none p-1">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </transition>
+
+    <!-- MODAL PREMIUM: MOTIVO DE PAUSA -->
+    <div v-if="showModalPausa" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </span>
+          <h3 class="text-lg font-bold text-slate-800">Pausar Tarea</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Escriba el motivo de la pausa o las refacciones/insumos necesarios para continuar.</p>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Motivo / Requerimiento (mín. 5 caracteres)</label>
+            <textarea v-model="motivoPausaTexto" rows="3" required placeholder="Ej. Esperando que el proveedor envíe el conector de alimentación de repuesto..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"></textarea>
+          </div>
+          <div class="mt-2 flex justify-end gap-2">
+            <button type="button" @click="showModalPausa = false" class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              Cancelar
+            </button>
+            <button type="button" @click="confirmarPausarTarea" class="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors">
+              Pausar Tarea
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL PREMIUM: AGREGAR INSUMO -->
+    <div v-if="showModalInsumo" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </span>
+          <h3 class="text-lg font-bold text-slate-800">Agregar Insumo / Repuesto</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Ingrese la descripción y cantidad del insumo o repuesto utilizado en la reparación.</p>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Nombre del Insumo / Repuesto</label>
+            <input type="text" v-model="insumoForm.nombre" placeholder="Ej. Soldadura de plata, Conector DC Hembra..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"/>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Cantidad / Medida</label>
+            <input type="text" v-model="insumoForm.cantidad" placeholder="Ej. 1x, 5g, 2 pzas..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100"/>
+          </div>
+          <div class="mt-2 flex justify-end gap-2">
+            <button type="button" @click="showModalInsumo = false" class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              Cancelar
+            </button>
+            <button type="button" @click="confirmarAgregarInsumo" class="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors">
+              Guardar Repuesto
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL PREMIUM: FINALIZAR TRABAJO -->
+    <div v-if="showModalFinalizar" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          <h3 class="text-lg font-bold text-slate-800">Finalizar Trabajo</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Para poder solicitar el cierre del ticket, debe ingresar el código físico de 6 caracteres proveído por el solicitante.</p>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Código de Verificación Física (6 Caracteres)</label>
+            <input type="text" v-model="codigoVerificacionTexto" placeholder="Ej. EFF300" maxlength="6" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-center text-base font-bold uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-100 border-emerald-200 bg-emerald-50/20 text-emerald-800"/>
+          </div>
+          <div class="mt-2 flex justify-end gap-2">
+            <button type="button" @click="showModalFinalizar = false" class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+              Cancelar
+            </button>
+            <button type="button" @click="confirmarFinalizarTrabajo" class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors">
+              Finalizar y Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: REPORTAR PROBLEMA -->
+    <div v-if="showModalReporte" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+          </span>
+          <h3 class="text-base font-bold text-slate-800">Reportar Problema</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Complete el formulario. El reporte quedará registrado en la bitácora y será visible para el destinatario seleccionado.</p>
+        <div class="flex flex-col gap-3">
+
+          <!-- DESTINATARIO -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Dirigido a</label>
+            <div class="destinatario-grid">
+              <button
+                type="button"
+                v-for="op in destinatarioOpciones"
+                :key="op.value"
+                @click="reporteForm.destinatario = op.value"
+                :class="['destinatario-btn', reporteForm.destinatario === op.value ? 'destinatario-btn--active' : '']"
+              >
+                <span class="destinatario-icon" v-html="op.icon"></span>
+                <span>{{ op.label }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- TIPO -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Tipo de Problema</label>
+            <select v-model="reporteForm.tipo" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-100">
+              <option value="">Seleccionar...</option>
+              <option value="Falta de materiales">Falta de materiales</option>
+              <option value="Equipo dañado adicionalmente">Equipo dañado adicionalmente</option>
+              <option value="Problema de acceso al área">Problema de acceso al área</option>
+              <option value="Solicitud incorrecta">Solicitud incorrecta</option>
+              <option value="Requiere especialista externo">Requiere especialista externo</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+
+          <!-- DESCRIPCIÓN -->
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1">Descripción del Problema (mín. 10 caracteres)</label>
+            <textarea v-model="reporteForm.descripcion" rows="4" placeholder="Describa en detalle el problema encontrado..." class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-100"></textarea>
+          </div>
+
+          <div class="mt-1 flex justify-end gap-2">
+            <button type="button" @click="showModalReporte = false" class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50" :disabled="enviandoReporte">
+              Cancelar
+            </button>
+            <button type="button" @click="enviarReporte" class="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 transition-colors disabled:opacity-50" :disabled="enviandoReporte">
+              {{ enviandoReporte ? 'Enviando...' : 'Enviar Reporte' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: CANCELAR TAREA CON ALERTA DE NOTIFICACIÓN AL COORDINADOR -->
+    <div v-if="showModalCancelar" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </span>
+          <div>
+            <h3 class="text-base font-bold text-slate-800">¿Cancelar asignación de tarea?</h3>
+            <p class="text-xs text-slate-400">Acción de cancelación para reasignación</p>
+          </div>
+        </div>
+
+        <div class="rounded-xl bg-amber-50/80 border border-amber-200/70 p-3.5 mb-4 text-xs text-amber-900 leading-relaxed">
+          <p class="font-bold mb-1 flex items-center gap-1 text-amber-900">
+            <span>⚠️</span> Notificación al Coordinador:
+          </p>
+          Al cancelar esta tarea, se enviará automáticamente una <strong>notificación formal al coordinador</strong> indicando que la has cancelado para que pueda ser reasignada a otro técnico disponible.
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-slate-500 mb-1.5">Motivo de Cancelación (Opcional)</label>
+          <textarea
+            v-model="motivoCancelar"
+            rows="3"
+            placeholder="Especifique el motivo por el cual no podrá atender esta tarea..."
+            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200"
+          ></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2.5">
+          <button
+            type="button"
+            @click="showModalCancelar = false"
+            class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+            :disabled="cancelandoTarea"
+          >
+            No, volver
+          </button>
+          <button
+            type="button"
+            @click="confirmarCancelarTarea"
+            class="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+            :disabled="cancelandoTarea"
+          >
+            <span v-if="cancelandoTarea">Cancelando...</span>
+            <span v-else>Aceptar y Notificar al Coordinador</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <footer class="page-footer">
       © 2024 Hospital Salud Integral - Sistema de Gestión de Mantenimiento Bio-Médico
@@ -188,35 +494,162 @@
 </template>
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import evidenciasService from '../../services/evidenciasService';
+import solicitudesService from '../../services/solicitudesService';
+import api from '../../services/api';
 
 const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const userInitial = computed(() => (authStore.user?.name ?? 'U').charAt(0).toUpperCase());
 
-// Datos de ejemplo (mock) — pendiente conectar a backend real
+const solicitud = ref({});
+const idAsignacion = ref(null);
+const cargando = ref(true);
+const error = ref('');
+
 const tarea = ref({
-  ubicacion: 'Unidad de Cuidados Intensivos (UCI) - Cama 4',
-  activo: 'Monitor de Signos Vitales B40 (GE Healthcare)',
-  solicitante: 'Dr. Roberto Gómez (Jefe de Piso)',
-  tipo: 'Correctivo / Eléctrico',
-  descripcion: 'Fallo intermitente en el encendido y conexión de energía. El personal de enfermería reporta que el cable parece tener un falso contacto en la entrada posterior del equipo.',
+  ubicacion: 'Cargando...',
+  activo: 'Cargando...',
+  solicitante: 'Cargando...',
+  tipo: 'Cargando...',
+  descripcion: 'Cargando...',
+  is_pausada: false,
+  motivo_pausa: null,
 });
 
-const bitacora = ref([
-  { titulo: 'Diagnóstico Inicial', fecha: 'Hoy, 09:15 AM', texto: 'Se procedió a desmontar la cubierta trasera. Se observa acumulación de polvo y desgaste en el pin central del conector de alimentación.' },
-  { titulo: 'Tarea Iniciada', fecha: 'Hoy, 08:30 AM', texto: 'Equipo recibido en taller para revisión profunda.' },
-]);
-
-const repuestos = ref([
-  { nombre: 'Conector DC Hembra 12V', cantidad: '1x' },
-  { nombre: 'Soldadura de Plata (gr)', cantidad: '5g' },
-]);
-
+const bitacora = ref([]);
+const repuestos = ref([]);
 const nuevaNota = ref('');
 const confirmado = ref(false);
+
+// Determina si la tarea ya fue terminada/cerrada (no se permiten mas acciones)
+const tareaTerminada = computed(() => {
+  const estado = solicitud.value.original?.estado_solicitud || '';
+  return ['Resuelta', 'Cerrada', 'Validada', 'Completada'].includes(estado);
+});
+
+// Modal y estado para Cancelar Tarea con notificación al coordinador
+const showModalCancelar = ref(false);
+const motivoCancelar = ref('');
+const cancelandoTarea = ref(false);
+
+function abrirModalCancelar() {
+  motivoCancelar.value = '';
+  showModalCancelar.value = true;
+}
+
+async function confirmarCancelarTarea() {
+  const targetId = idAsignacion.value || route.params.id;
+  if (!targetId) {
+    showToast('No se encontró el identificador de la asignación.', 'error');
+    return;
+  }
+
+  cancelandoTarea.value = true;
+  try {
+    const res = await api.post(`/tecnico/asignaciones/${targetId}/cancelar`, {
+      motivo: motivoCancelar.value.trim() || 'Cancelación solicitada por el técnico.'
+    });
+
+    showModalCancelar.value = false;
+    showToast(res.data?.mensaje || 'Se ha notificado al coordinador y la tarea fue cancelada.', 'success');
+    
+    setTimeout(() => {
+      router.push('/tareas');
+    }, 1200);
+  } catch (e) {
+    console.error('Error al cancelar tarea:', e);
+    const msg = e.response?.data?.mensaje || 'No se pudo procesar la cancelación de la tarea.';
+    showToast(msg, 'error');
+  } finally {
+    cancelandoTarea.value = false;
+  }
+}
+
+// Modal y estado para Reportar Problema
+const showModalReporte = ref(false);
+const enviandoReporte = ref(false);
+const reporteForm = ref({ destinatario: 'Coordinador', tipo: '', descripcion: '' });
+
+const destinatarioOpciones = [
+  {
+    value: 'Coordinador',
+    label: 'Coordinador',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>'
+  },
+  {
+    value: 'Administrador',
+    label: 'Administrador',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>'
+  },
+  {
+    value: 'Ambos',
+    label: 'Coordinador y Admin',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>'
+  },
+];
+
+function abrirModalReporte() {
+  reporteForm.value = { destinatario: 'Coordinador', tipo: '', descripcion: '' };
+  showModalReporte.value = true;
+}
+
+async function enviarReporte() {
+  if (!reporteForm.value.destinatario) {
+    showToast('Seleccione a quién va dirigido el reporte.', 'warning');
+    return;
+  }
+  if (!reporteForm.value.tipo) {
+    showToast('Seleccione el tipo de problema.', 'warning');
+    return;
+  }
+  if (reporteForm.value.descripcion.trim().length < 10) {
+    showToast('La descripción debe tener al menos 10 caracteres.', 'warning');
+    return;
+  }
+  if (!idAsignacion.value) {
+    showToast('No se encontró la asignación activa.', 'error');
+    return;
+  }
+
+  enviandoReporte.value = true;
+  try {
+    const mensajeReporte = `[REPORTE DE PROBLEMA] Para: ${reporteForm.value.destinatario} | Tipo: ${reporteForm.value.tipo} | Descripción: ${reporteForm.value.descripcion.trim()}`;
+    await api.post(`/tecnico/asignaciones/${idAsignacion.value}/bitacoras`, {
+      descripcion_trabajo: mensajeReporte,
+      materiales: null
+    });
+    showModalReporte.value = false;
+    showToast(`Reporte enviado a ${reporteForm.value.destinatario} correctamente.`, 'success');
+    await cargarDatos();
+  } catch (e) {
+    console.error('[DetalleTareaView] Error al enviar reporte:', e);
+    showToast('No se pudo enviar el reporte. Intente nuevamente.', 'error');
+  } finally {
+    enviandoReporte.value = false;
+  }
+}
+
+// Modales reactivos y Toast
+const toast = ref({ show: false, message: '', type: 'success' });
+function showToast(message, type = 'success') {
+  toast.value.message = message;
+  toast.value.type = type;
+  toast.value.show = true;
+  setTimeout(() => { toast.value.show = false; }, 4000);
+}
+
+const showModalPausa = ref(false);
+const motivoPausaTexto = ref('');
+
+const showModalInsumo = ref(false);
+const insumoForm = ref({ nombre: '', cantidad: '1x' });
+
+const showModalFinalizar = ref(false);
+const codigoVerificacionTexto = ref('');
 
 // Evidencia (conectada al backend real)
 const evidencias = ref([]);
@@ -225,11 +658,87 @@ const subiendo = ref(false);
 const errorEvidencia = ref('');
 
 function urlEvidencia(ev) {
-  return `/storage/${ev.ruta}`;
+  return ev.url;
 }
 
 function esImagen(ev) {
-  return (ev.tipo || '').startsWith('image/');
+  return (ev.type || '').startsWith('image/');
+}
+
+function formatFechaHora(fechaStr) {
+  if (!fechaStr) return '';
+  const date = new Date(fechaStr);
+  return date.toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+async function cargarDatos() {
+  cargando.value = true;
+  error.value = '';
+  try {
+    let sol = await solicitudesService.obtener(route.params.id);
+    const estadoReal = sol.original?.estado_solicitud;
+    
+    if (['Asignada', 'Abierta', 'Devuelta'].includes(estadoReal)) {
+      try {
+        console.log('[DetalleTareaView.vue] Tarea con estado de atención pendiente. Iniciando de forma automática...');
+        await api.patch(`/tecnico/asignaciones/${sol.id_asignacion}/iniciar`);
+        // Recargar el ticket con el nuevo estado 'En Proceso'
+        sol = await solicitudesService.obtener(route.params.id);
+      } catch (iniciarError) {
+        console.error('[DetalleTareaView.vue] Error al iniciar la atención automáticamente:', iniciarError);
+      }
+    }
+
+    solicitud.value = sol;
+    idAsignacion.value = sol.id_asignacion;
+
+    tarea.value = {
+      ubicacion: sol.ubicacion || 'No especificada',
+      activo: sol.titulo || 'Mantenimiento de Equipo',
+      solicitante: sol.original?.solicitante ? `${sol.original.solicitante.nombre} ${sol.original.solicitante.apellido}` : 'No especificado',
+      tipo: sol.subtitulo || 'Soporte Técnico',
+      descripcion: sol.descripcion || 'Sin descripción.',
+      is_pausada: sol.original?.asignacion?.is_pausada || false,
+      motivo_pausa: sol.original?.asignacion?.motivo_pausa || null,
+    };
+
+    // Cargar bitácoras reales
+    if (sol.original?.asignacion?.bitacoras) {
+      bitacora.value = sol.original.asignacion.bitacoras.map(b => ({
+        titulo: b.descripcion_trabajo.startsWith('Tarea pausada') ? 'Pausado' : (b.descripcion_trabajo.startsWith('Tarea reanudada') ? 'Reanudado' : 'Entrada de Bitácora'),
+        fecha: formatFechaHora(b.created_at),
+        texto: b.descripcion_trabajo,
+      }));
+
+      // Cargar repuestos desde las bitácoras reales de la asignación
+      const listaRepuestos = [];
+      sol.original.asignacion.bitacoras.forEach(b => {
+        if (b.materiales) {
+          // El backend puede guardar una lista separada por comas, los mostramos
+          const partes = b.materiales.split(', ');
+          partes.forEach(p => {
+            if (p.trim()) {
+              const match = p.match(/(.*)\s\((.*)\)/);
+              if (match) {
+                listaRepuestos.push({ nombre: match[1].trim(), cantidad: match[2].trim() });
+              } else {
+                listaRepuestos.push({ nombre: p.trim(), cantidad: '' });
+              }
+            }
+          });
+        }
+      });
+      repuestos.value = listaRepuestos;
+    } else {
+      bitacora.value = [];
+      repuestos.value = [];
+    }
+
+  } catch (e) {
+    error.value = 'No se pudo cargar el detalle de la tarea.';
+  } finally {
+    cargando.value = false;
+  }
 }
 
 async function cargarEvidencias() {
@@ -247,30 +756,168 @@ async function subirEvidencia(event) {
   const archivo = event.target.files[0];
   if (!archivo) return;
 
+  // Validar formato (solo JPG, PNG, JPEG)
+  const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (!tiposPermitidos.includes(archivo.type)) {
+    errorEvidencia.value = 'Sólo se permiten imágenes en formato JPG, JPEG o PNG.';
+    event.target.value = '';
+    return;
+  }
+
+  // Validar tamaño (máx. 5MB)
+  if (archivo.size > 5 * 1024 * 1024) {
+    errorEvidencia.value = 'El archivo supera el tamaño máximo permitido de 5MB.';
+    event.target.value = '';
+    return;
+  }
+
   subiendo.value = true;
   errorEvidencia.value = '';
+  console.log('[DetalleTareaView.vue] Llamando a subirEvidencia:', {
+    solicitudId: route.params.id,
+    idAsignacion: idAsignacion.value,
+    archivo: archivo.name
+  });
   try {
-    const nueva = await evidenciasService.subir(route.params.id, archivo);
+    const nueva = await evidenciasService.subir(route.params.id, archivo, idAsignacion.value);
     evidencias.value.unshift(nueva);
+    console.log('[DetalleTareaView.vue] Subida de evidencia completada con éxito.');
   } catch (e) {
-    errorEvidencia.value = 'No se pudo subir el archivo. Verifica el formato y tamaño.';
+    console.error('[DetalleTareaView.vue] Falló la subida de evidencia:', e);
+    if (e.response) {
+      console.error('[DetalleTareaView.vue] Datos de respuesta de error:', e.response.data);
+    }
+    errorEvidencia.value = 'No se pudo subir la imagen. Verifica el archivo.';
   } finally {
     subiendo.value = false;
     event.target.value = '';
   }
 }
 
-function agregarNota() {
+async function agregarNota() {
   if (!nuevaNota.value.trim()) return;
-  bitacora.value.unshift({
-    titulo: 'Nueva entrada',
-    fecha: 'Ahora',
-    texto: nuevaNota.value.trim(),
-  });
-  nuevaNota.value = '';
+  if (!idAsignacion.value) {
+    showToast('Asignación inválida.', 'error');
+    return;
+  }
+
+  try {
+    let materialesStr = null;
+    if (repuestos.value.length > 0) {
+      materialesStr = repuestos.value.map(r => `${r.nombre} (${r.cantidad})`).join(', ');
+    }
+
+    await api.post(`/tecnico/asignaciones/${idAsignacion.value}/bitacoras`, {
+      descripcion_trabajo: nuevaNota.value.trim(),
+      materiales: materialesStr
+    });
+
+    await cargarDatos();
+    nuevaNota.value = '';
+    showToast('Nota agregada a la bitácora con éxito.', 'success');
+  } catch (e) {
+    showToast('No se pudo guardar la nota de bitácora.', 'error');
+  }
+}
+
+function agregarInsumo() {
+  insumoForm.value.nombre = '';
+  insumoForm.value.cantidad = '1x';
+  showModalInsumo.value = true;
+}
+
+function confirmarAgregarInsumo() {
+  const nombre = insumoForm.value.nombre.trim();
+  const cantidad = insumoForm.value.cantidad.trim();
+  if (!nombre) {
+    showToast('Escriba el nombre del repuesto o insumo.', 'warning');
+    return;
+  }
+  if (!cantidad) {
+    showToast('Escriba la cantidad.', 'warning');
+    return;
+  }
+
+  repuestos.value.push({ nombre, cantidad });
+  showModalInsumo.value = false;
+  showToast('Insumo agregado a la lista.', 'success');
+}
+
+function pausarTarea() {
+  motivoPausaTexto.value = '';
+  showModalPausa.value = true;
+}
+
+async function confirmarPausarTarea() {
+  if (!idAsignacion.value) return;
+  const motivo = motivoPausaTexto.value.trim();
+  if (!motivo) {
+    showToast('Debe escribir el motivo de la pausa.', 'warning');
+    return;
+  }
+  if (motivo.length < 5) {
+    showToast('El motivo debe tener al menos 5 caracteres.', 'warning');
+    return;
+  }
+
+  try {
+    await solicitudesService.pausarAsignacion(idAsignacion.value, motivo);
+    showModalPausa.value = false;
+    showToast('La tarea ha sido pausada y el coordinador ha sido notificado.', 'success');
+    await cargarDatos();
+  } catch (e) {
+    showToast('No se pudo pausar la tarea.', 'error');
+  }
+}
+
+async function reanudarTarea() {
+  if (!idAsignacion.value) return;
+  try {
+    await solicitudesService.reanudarAsignacion(idAsignacion.value);
+    showToast('La tarea ha sido reanudada exitosamente.', 'success');
+    await cargarDatos();
+  } catch (e) {
+    showToast('No se pudo reanudar la tarea.', 'error');
+  }
+}
+
+async function finalizarTrabajo() {
+  if (!confirmado.value) return;
+  if (!idAsignacion.value) return;
+
+  if (evidencias.value.length === 0) {
+    showToast('Debe subir al menos una foto de evidencia de finalización.', 'warning');
+    return;
+  }
+
+  codigoVerificacionTexto.value = '';
+  showModalFinalizar.value = true;
+}
+
+async function confirmarFinalizarTrabajo() {
+  const codigo = codigoVerificacionTexto.value.trim();
+  if (!codigo || codigo.length !== 6) {
+    showToast('Debe ingresar un código válido de 6 caracteres.', 'warning');
+    return;
+  }
+
+  try {
+    const response = await api.patch(`/tecnico/asignaciones/${idAsignacion.value}/solicitar-cierre`, {
+      codigo_verificacion: codigo.toUpperCase()
+    });
+    showModalFinalizar.value = false;
+    showToast(response.data.mensaje || 'Trabajo finalizado con éxito.', 'success');
+    setTimeout(() => {
+      router.push('/tareas');
+    }, 1500);
+  } catch (e) {
+    const msg = e.response?.data?.mensaje || 'No se pudo finalizar el trabajo. Verifica el código de verificación.';
+    showToast(msg, 'error');
+  }
 }
 
 onMounted(() => {
+  cargarDatos();
   cargarEvidencias();
 });
 </script>
@@ -309,7 +956,74 @@ onMounted(() => {
 
 .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
 .page-title { font-size: 1.4rem; font-weight: 800; margin: 0; }
-.report-problem-btn { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.5rem 0.9rem; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+.report-problem-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.report-problem-btn:hover { background: #fee2e2; }
+.inline-icon { width: 14px; height: 14px; flex-shrink: 0; }
+
+.tarea-cerrada-card { text-align: center; padding: 1.5rem 1.25rem !important; }
+.cerrada-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+  padding: 0.4rem 1rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  margin-bottom: 0.75rem;
+}
+.cerrada-icon { width: 18px; height: 18px; }
+.cerrada-hint { font-size: 0.78rem; color: #94a3b8; margin: 0; }
+
+/* Destinatario selector */
+.destinatario-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.destinatario-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.55rem 0.4rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+  line-height: 1.2;
+}
+.destinatario-btn:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+  color: #334155;
+}
+.destinatario-btn--active {
+  border-color: #2563eb !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+}
+.destinatario-icon { display: flex; align-items: center; justify-content: center; }
 
 .tag-row { display: flex; gap: 0.6rem; margin: 0.75rem 0 1.5rem; }
 .priority-badge, .status-badge { font-size: 0.75rem; font-weight: 700; padding: 0.3rem 0.7rem; border-radius: 14px; }
@@ -370,6 +1084,11 @@ onMounted(() => {
 .pause-btn, .cancel-btn {
   width: 100%; background: #fff; border: 1px solid #e2e8f0; padding: 0.65rem;
   border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-bottom: 0.5rem; color: #475569;
+}
+.resume-btn {
+  background: #f0fdf4 !important;
+  color: #16a34a !important;
+  border-color: #bbf7d0 !important;
 }
 .cancel-btn { color: #dc2626; border-color: #fecaca; }
 

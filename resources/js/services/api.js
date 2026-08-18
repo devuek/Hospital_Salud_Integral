@@ -29,7 +29,12 @@ api.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_last_activity');
             window.dispatchEvent(new Event('auth:logout'));
+            // Redirigir al login si no estamos ya en la página de login
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login?expired=1';
+            }
         }
         return Promise.reject(error);
     }

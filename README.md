@@ -1,69 +1,105 @@
-# Sistema de Control de Solicitudes de Servicio General y Mantenimiento
+# Sistema de Control de Mantenimiento y Servicios Generales
+## Hospital Salud Integral – El Salvador
 
-Qué tal, cheros. Este es el repositorio del backend que armé en Laravel para el sistema de solicitudes del hospital. Les dejo esto por acá para que lo levantemos al suave con Docker y Laravel Sail, así no nos complicamos con la base de datos MySQL y lo tenemos todo listo de un solo.
+Sistema web empresarial para la gestión, seguimiento, asignación, ejecución y auditoría de solicitudes de mantenimiento hospitalario y servicios generales. Desarrollado con arquitectura desacoplada bajo Laravel 11 en el backend y Vue 3 (Single Page Application) en el frontend.
+
+---
+
+## Arquitectura del Sistema
+
+* **Backend**: Laravel 11.x (PHP 8.4+ / 8.5)
+* **Frontend**: Vue.js 3 (Composition API) + Vite + Pinia + Vue Router
+* **Base de Datos**: MySQL 8.0+
+* **Contenedores**: Docker & Laravel Sail
+* **Seguridad**: Autenticación con Laravel Sanctum, Control de Acceso Basado en Roles (RBAC) y Firmas Criptográficas de Integridad (HMAC/SHA-256).
+
+---
+
+## Roles y Módulos de Usuario
+
+| Rol | Vistas Principales | Capacidades y Flujos |
+| :--- | :--- | :--- |
+| **Administrador** | `/admin` (Dashboard, Usuarios, Departamentos) | Control global, gestión de sedes y unidades, altas y bajas de personal, reportes analíticos con exportación PDF. |
+| **Coordinador** | `/admin` (Coordinación) / `/solicitudes/:id` | Clasificación de prioridad, asignación y reasignación técnica en vivo, validación de cierre y centro de alertas. |
+| **Técnico** | `/tareas` / `/tareas/:id` / `/inventario` | Recepción de tareas, registro en bitácora, control de insumos/repuestos, pausas, código OTP de verificación y cancelación con notificación formal. |
+| **Solicitante** | `/solicitudes` / `/solicitudes/nueva` | Creación de tickets con evidencia fotográfica (Drag & Drop), consulta de estado en tiempo real, confirmación de cierre y encuestas de satisfacción. |
 
 ---
 
 ## Requisitos Previos
 
-Antes de que empecemos a pullear, por favor asegúrense de tener instalado esto en su compu:
-*   Docker Desktop (o Docker Engine si usan Linux)
-*   Git
+* Docker Desktop o Docker Engine (Linux)
+* Git
+* Node.js v20+ / v22+ (para compilación local de assets)
 
 ---
 
-## Cómo Clonar y Levantar el Proyecto
-
-Aquí les comparto el paso a paso para clonar y levantar el proyecto en su máquina sin complicaciones:
+## Instalación y Puesta en Marcha
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/aliciaescobar332/sistema-solicitudes-mantenimiento.git
-cd sistema-solicitudes-mantenimiento
+git clone https://github.com/devuek/Hospital_Salud_Integral.git
+cd Hospital_Salud_Integral
 ```
 
-### 2. Crear el archivo de configuración local (.env)
-Hagan una copia del archivo de ejemplo para configurar sus variables locales:
+### 2. Configuración del entorno
 ```bash
 cp .env.example .env
 ```
 
-### 3. Iniciar los contenedores de Docker (Laravel Sail)
-Para levantar el servidor y la base de datos en segundo plano, por favor corran este comando:
+### 3. Iniciar los contenedores con Laravel Sail
 ```bash
 ./vendor/bin/sail up -d
 ```
-*(Nota: Si es la primera vez que lo corren, se va a tardar su buen ratito en lo que Docker descarga las imágenes de internet y nos levanta todo. Tengan un poquito de paciencia).*
 
-### 4. Generar la clave de la aplicación
-Ya cuando vean que los contenedores están listos, por favor corran este comando para generar la llave de seguridad del proyecto:
+### 4. Generar clave de aplicación y ejecutar migraciones con datos iniciales
 ```bash
 ./vendor/bin/sail artisan key:generate
-```
-
-### 5. Crear la Base de Datos y meter los datos reales de prueba
-Para crear las tablas del hospital cabalito como se necesitan y meter de un solo los datos reales de prueba (usuarios con sus roles, sedes y los tickets de ejemplo), denle viaje a este comando:
-```bash
 ./vendor/bin/sail artisan migrate:fresh --seed
 ```
 
+### 5. Compilar assets del Frontend (Vite)
+```bash
+npm install
+npm run build
+```
+
+El sistema estará accesible en el navegador en: `http://localhost:8080`
+
 ---
 
-## Acceso a la Base de Datos
+## Credenciales de Acceso de Demostración
 
-*   **Esquema SQL Físico**:
-    El script DDL con toda la estructura de la base de datos oficial lo he dejado guardadito en:
-    `database/docs/estructura_base_datos.sql`
-*   **¿Cómo entrar a la base de datos desde la terminal?**
-    Si quieren entrar directo a la consola de MySQL dentro de Docker, solo tienen que poner:
-    ```bash
-    ./vendor/bin/sail mysql
-    ```
-*   **¿Cómo conectarse con un gestor gráfico?**
-    Si les gusta más usar DBeaver, TablePlus o cualquier otro programa, lo pueden configurar con estos accesos sin problemas:
-    *   **Host**: 127.0.0.1
-    *   **Puerto**: 3306
-    *   **Base de datos**: laravel
-    *   **Usuario**: sail
-    *   **Contraseña**: password
+| Rol | Correo Electrónico | Contraseña |
+| :--- | :--- | :--- |
+| **Administrador** | `admin@hospital.com` | `admin123` |
+| **Coordinador** | `maria.garcia@hospital.com` | `password` |
+| **Técnico** | `roberto.gomez@hospital.com` | `password` |
+| **Solicitante** | `carlos.lopez@hospital.com` | `password` |
 
+---
+
+## Base de Datos y Estructura
+
+* El script DDL con la estructura relacional se encuentra en: `database/docs/estructura_base_datos.sql`
+* Acceso a la consola MySQL desde Sail:
+  ```bash
+  ./vendor/bin/sail mysql
+  ```
+* Conexión para clientes externos (DBeaver, TablePlus, MySQL Workbench):
+  * **Host**: `127.0.0.1`
+  * **Puerto**: `3306` (o `3307` según `.env`)
+  * **Base de datos**: `laravel`
+  * **Usuario**: `sail`
+  * **Contraseña**: `password`
+
+---
+
+## Documentación y Reportes
+
+* Reporte consolidado de solicitudes disponible en: `reporte-solicitudes.pdf`
+
+---
+
+**Hospital Salud Integral – El Salvador**  
+*Equipo de Desarrollo y Arquitectura de Software – Grupo 04 (Ciclo II / 2026)*

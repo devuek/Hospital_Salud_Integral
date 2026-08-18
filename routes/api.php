@@ -39,12 +39,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/usuarios', [UsuariosController::class, 'store']);
         Route::get('/usuarios/{id}', [UsuariosController::class, 'show']);
         Route::put('/usuarios/{id}', [UsuariosController::class, 'update']);
+        Route::patch('/usuarios/{id}/editar', [UsuariosController::class, 'update']);
+        Route::patch('/usuarios/{id}', [UsuariosController::class, 'update']);
+        Route::delete('/usuarios/{id}', [UsuariosController::class, 'destroy']);
         Route::patch('/usuarios/{id}/deshabilitar', [UsuariosController::class, 'deshabilitar']);
         Route::patch('/usuarios/{id}/habilitar', [UsuariosController::class, 'habilitar']);
 
         // Catalogos admin
         Route::post('/catalogos/sedes', [CatalogosController::class, 'crearSede']);
+        Route::put('/catalogos/sedes/{id}', [CatalogosController::class, 'actualizarSede']);
+        Route::delete('/catalogos/sedes/{id}', [CatalogosController::class, 'eliminarSede']);
         Route::post('/catalogos/unidades', [CatalogosController::class, 'crearUnidad']);
+        Route::put('/catalogos/unidades/{id}', [CatalogosController::class, 'actualizarUnidad']);
+        Route::delete('/catalogos/unidades/{id}', [CatalogosController::class, 'eliminarUnidad']);
     });
 
     // Solicitante
@@ -70,7 +77,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/solicitudes/{id}/devolver', [CoordinadorController::class, 'devolver'])->middleware('integridad');
         Route::post('/solicitudes/{id}/asignar', [CoordinadorController::class, 'asignar'])->middleware('integridad');
         Route::patch('/solicitudes/{id}/validar-cierre', [CoordinadorController::class, 'validarCierre'])->middleware('integridad');
+        Route::post('/solicitudes/{id}/reabrir', [CoordinadorController::class, 'reabrir'])->middleware('integridad');
         
+        // Auditoria
+        Route::get('/auditoria/logs', [CoordinadorController::class, 'logsAuditoria']);
+
         // Reasignaciones
         Route::get('/reasignaciones/pendientes', [CoordinadorController::class, 'listarReasignacionesPendientes']);
         Route::get('/tecnicos/carga-trabajo', [CoordinadorController::class, 'obtenerCargaTrabajoTecnicos']);
@@ -87,6 +98,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/asignaciones/{id}/solicitar-cierre', [TecnicoController::class, 'solicitarCierre'])->middleware('integridad');
         Route::post('/asignaciones/{id}/evidencias', [TecnicoController::class, 'adjuntarEvidencia'])->middleware('integridad');
         
+        // Pausar/reanudar y cancelar
+        Route::patch('/asignaciones/{id}/pausar', [TecnicoController::class, 'pausarTarea'])->middleware('integridad');
+        Route::patch('/asignaciones/{id}/reanudar', [TecnicoController::class, 'reanudarTarea'])->middleware('integridad');
+        Route::post('/asignaciones/{id}/cancelar', [TecnicoController::class, 'cancelarTarea'])->middleware('integridad');
+        
         // Reasignaciones tecnico
         Route::post('/asignaciones/{id}/solicitar-reasignacion', [TecnicoController::class, 'solicitarReasignacion'])->middleware('integridad');
     });
@@ -97,6 +113,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [ReportesController::class, 'dashboard']);
         Route::get('/por-area', [ReportesController::class, 'porArea']);
         Route::get('/tecnicos', [ReportesController::class, 'rendimientoTecnicos']);
+        Route::get('/tiempos-atencion', [ReportesController::class, 'tiemposAtencion']);
+        Route::get('/tendencias', [ReportesController::class, 'tendencias']);
     });
 
     // Detalle de ticket

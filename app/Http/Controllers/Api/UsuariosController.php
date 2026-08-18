@@ -86,13 +86,36 @@ class UsuariosController extends Controller
             'area_servicio' => $rol->nombre_rol === 'Técnico'
                 ? 'sometimes|in:Servicios Generales,Soporte Técnico'
                 : 'nullable',
+            'password'      => 'nullable|string|min:6',
         ]);
 
-        $usuario->update($request->only(['nombre', 'apellido', 'correo', 'id_rol', 'id_sede', 'area_servicio']));
+        $datos = $request->only(['nombre', 'apellido', 'correo', 'id_rol', 'id_sede', 'area_servicio']);
+        if ($request->filled('password')) {
+            $datos['password'] = Hash::make($request->password);
+        }
+
+        $usuario->update($datos);
 
         return response()->json([
             'mensaje' => 'Usuario actualizado con éxito.',
             'usuario' => $this->formatear($usuario->load(['rol', 'sede'])),
+        ]);
+    }
+
+    public function destroy(string $id)
+    {
+        $usuario = User::findOrFail($id);
+
+        if ($usuario->estado === 'Activo') {
+            return response()->json([
+                'message' => 'No se puede eliminar un usuario activo. Primero debe deshabilitarlo.',
+            ], 422);
+        }
+
+        $usuario->delete();
+
+        return response()->json([
+            'mensaje' => 'Usuario eliminado de la base de datos correctamente.',
         ]);
     }
 

@@ -100,7 +100,7 @@
             </thead>
             <tbody>
               <tr v-for="s in solicitudes" :key="s.id">
-                <td class="cell-id">#SOL-{{ s.id }}</td>
+                <td class="cell-id">#SOL-{{ abreviarId(s.id) }}</td>
                 <td>{{ s.titulo }}</td>
                 <td class="cell-ubicacion">{{ s.ubicacion }}</td>
                 <td>{{ formatFecha(s.fecha) }}</td>
@@ -152,6 +152,24 @@ const barras = computed(() => {
     { label: 'Completadas', valor: resumen.value.completadas, color: '#16a34a', porcentaje: (resumen.value.completadas / total) * 100 },
   ];
 });
+
+function abreviarId(uuid) {
+  if (!uuid) return '';
+  const clean = uuid.replace(/-/g, '');
+  let hash1 = 0;
+  for (let i = 0; i < 16; i++) {
+    hash1 = ((hash1 << 5) - hash1) + clean.charCodeAt(i);
+    hash1 |= 0;
+  }
+  let hash2 = 0;
+  for (let i = 16; i < clean.length; i++) {
+    hash2 = ((hash2 << 5) - hash2) + clean.charCodeAt(i);
+    hash2 |= 0;
+  }
+  const h1 = Math.abs(hash1).toString(36).toUpperCase().padStart(4, '0');
+  const h2 = Math.abs(hash2).toString(36).toUpperCase().padStart(5, '0');
+  return `${h1}${h2}`.substring(0, 9);
+}
 
 function formatFecha(fecha) {
   if (!fecha) return '';
@@ -223,7 +241,7 @@ function exportarPDF() {
     startY: finalY + 5,
     head: [['ID', 'Servicio', 'Ubicación', 'Fecha', 'Estado']],
     body: solicitudes.value.map((s) => [
-      `#SOL-${s.id}`,
+      `#SOL-${abreviarId(s.id)}`,
       s.titulo,
       s.ubicacion,
       formatFecha(s.fecha),

@@ -21,10 +21,13 @@ class Asignacion extends Model
         'id_usuario_tecnico',
         'id_usuario_coordinador',
         'fecha_asignacion',
+        'is_pausada',
+        'motivo_pausa',
     ];
 
     protected $casts = [
         'fecha_asignacion' => 'datetime',
+        'is_pausada' => 'boolean',
     ];
 
     public function solicitud()

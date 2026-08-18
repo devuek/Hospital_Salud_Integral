@@ -119,6 +119,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import authService from '../../services/authService';
+import api from '../../services/api';
 
 const email = ref('');
 const password = ref('');
@@ -159,19 +160,20 @@ async function handleSubmit() {
 
     // Redirigir según el rol del usuario
     const rol = authStore.user?.rol;
-if (rol === 'admin') {
-  router.push('/admin');
-} else if (rol === 'coordinador') {
-  router.push('/coordinacion');
-} else if (rol === 'tecnico') {
-  router.push('/tareas');
-} else {
-  router.push('/dashboard');
-}
+    if (rol === 'admin') {
+      router.push('/admin');
+    } else if (rol === 'coordinador') {
+      router.push('/coordinacion');
+    } else if (rol === 'tecnico') {
+      router.push('/tareas');
+    } else {
+      router.push('/dashboard');
+    }
   } catch (e) {
     // El error ya queda reflejado en authStore.error
   }
 }
+
 async function handleForgotPassword() {
   forgotMessage.value = '';
   authStore.error = '';
@@ -182,10 +184,10 @@ async function handleForgotPassword() {
   }
 
   try {
-    await authService.api.post('/password/email', { email: email.value });
-    forgotMessage.value = 'Te enviamos un correo con instrucciones para restablecer tu contraseña.';
+    const res = await api.post('/forgot-password', { correo: email.value });
+    forgotMessage.value = res.data?.mensaje || 'Te enviamos un correo con instrucciones para restablecer tu contraseña.';
   } catch (e) {
-    authStore.error = 'No pudimos procesar la solicitud. Verifica el correo e intenta de nuevo.';
+    authStore.error = e.response?.data?.mensaje || e.response?.data?.message || 'No pudimos procesar la solicitud. Verifica el correo e intenta de nuevo.';
   }
 }
 </script>

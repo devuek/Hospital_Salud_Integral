@@ -74,22 +74,23 @@ class UsuariosController extends Controller
         $usuario = User::findOrFail($id);
 
         $idRol = $request->id_rol ?? $usuario->id_rol;
-        $rol = Rol::findOrFail($idRol);
-        $esOperativo = in_array($rol->nombre_rol, ['Técnico', 'Coordinador', 'Solicitante']);
+        $rol = Rol::find($idRol);
 
         $request->validate([
             'nombre'        => 'sometimes|string|max:100',
             'apellido'      => 'sometimes|string|max:100',
             'correo'        => 'sometimes|email|unique:users,correo,' . $id . ',id_usuario',
             'id_rol'        => 'sometimes|exists:roles,id_rol',
-            'id_sede'       => ($esOperativo ? 'required' : 'nullable') . '|exists:sedes,id_sede',
-            'area_servicio' => $rol->nombre_rol === 'Técnico'
-                ? 'sometimes|in:Servicios Generales,Soporte Técnico'
-                : 'nullable',
+            'id_sede'       => 'sometimes|nullable|exists:sedes,id_sede',
+            'area_servicio' => 'sometimes|nullable|string',
             'password'      => 'nullable|string|min:6',
         ]);
 
-        $datos = $request->only(['nombre', 'apellido', 'correo', 'id_rol', 'id_sede', 'area_servicio']);
+        $datos = array_filter(
+            $request->only(['nombre', 'apellido', 'correo', 'id_rol', 'id_sede', 'area_servicio']),
+            fn($val) => !is_null($val)
+        );
+
         if ($request->filled('password')) {
             $datos['password'] = Hash::make($request->password);
         }

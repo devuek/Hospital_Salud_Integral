@@ -95,11 +95,5 @@ El sistema estará accesible en el navegador en: `http://localhost:8080`
 
 ---
 
-## Documentación y Reportes
-
-* Reporte consolidado de solicitudes disponible en: `reporte-solicitudes.pdf`
-
----
-
 **Hospital Salud Integral – El Salvador**  
 *Equipo de Desarrollo y Arquitectura de Software – Grupo 04 (Ciclo II / 2026)*

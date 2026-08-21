@@ -877,8 +877,8 @@
     </div>
 
     <!-- MODAL: NUEVA SOLICITUD INLINE -->
-    <div v-if="showNuevaSolicitudModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+    <div v-if="showNuevaSolicitudModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showNuevaSolicitudModal = false">
+      <div @click.stop class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
         <h3 class="mb-1 text-lg font-bold text-slate-800">Nueva Solicitud de Servicio</h3>
         <p class="mb-5 text-sm text-slate-400">Complete los datos para reportar una falla o requerimiento.</p>
         <form @submit.prevent="guardarNuevaSolicitud" class="flex flex-col gap-3">
@@ -923,8 +923,8 @@
     </div>
 
     <!-- MODAL INTERACTIVO: NUEVO USUARIO -->
-    <div v-if="showUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div v-if="showUserModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showUserModal = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <h3 class="mb-4 text-lg font-bold text-slate-800">Crear Nuevo Usuario</h3>
         <form @submit.prevent="guardarUsuario" class="flex flex-col gap-3">
           <div>
@@ -978,8 +978,8 @@
     </div>
 
     <!-- MODAL INTERACTIVO: NUEVA SEDE -->
-    <div v-if="showSedeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div v-if="showSedeModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showSedeModal = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <h3 class="mb-4 text-lg font-bold text-slate-800">Crear Nueva Sede</h3>
         <form @submit.prevent="guardarSede" class="flex flex-col gap-3">
           <div>
@@ -1003,8 +1003,8 @@
     </div>
 
     <!-- MODAL INTERACTIVO: NUEVA UNIDAD -->
-    <div v-if="showUnidadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+    <div v-if="showUnidadModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showUnidadModal = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <h3 class="mb-4 text-lg font-bold text-slate-800">Crear Nueva Unidad Médica</h3>
         <form @submit.prevent="guardarUnidad" class="flex flex-col gap-3">
           <div>
@@ -1030,8 +1030,8 @@
     </div>
 
     <!-- MODAL: EDITAR USUARIO -->
-    <div v-if="showEditUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100">
+    <div v-if="showEditUserModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showEditUserModal = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100">
         <div class="flex items-center gap-3 mb-5">
           <span class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -1073,8 +1073,8 @@
     </div>
 
     <!-- MODAL: CONFIRMAR DESHABILITAR / HABILITAR USUARIO -->
-    <div v-if="showConfirmEstadoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
+    <div v-if="showConfirmEstadoModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showConfirmEstadoModal = false">
+      <div @click.stop class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
         <span :class="usuarioAccion?.estado === 'Activo' ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'"
           class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
           <svg v-if="usuarioAccion?.estado === 'Activo'" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
@@ -1099,8 +1099,8 @@
     </div>
 
     <!-- MODAL: CONFIRMAR ELIMINAR USUARIO -->
-    <div v-if="showConfirmDeleteUserModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
+    <div v-if="showConfirmDeleteUserModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showConfirmDeleteUserModal = false">
+      <div @click.stop class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
         <span class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-500">
           <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </span>
@@ -1108,8 +1108,9 @@
         <p class="text-sm text-slate-500 mb-2">
           Vas a eliminar permanentemente a <strong>{{ usuarioAccion?.nombre }} {{ usuarioAccion?.apellido }}</strong>.
         </p>
-        <div v-if="usuarioAccion?.estado === 'Activo'" class="mb-4 rounded-lg bg-amber-50 border border-amber-100 px-4 py-2 text-xs text-amber-700 font-medium">
-          ⚠️ Este usuario está activo. Debes deshabilitarlo antes de poder eliminarlo.
+        <div v-if="usuarioAccion?.estado === 'Activo'" class="mb-4 rounded-lg bg-amber-50 border border-amber-100 px-4 py-2 text-xs text-amber-700 font-medium flex items-center gap-1.5">
+          <svg class="h-4 w-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span>Este usuario está activo. Debes deshabilitarlo antes de poder eliminarlo.</span>
         </div>
         <div v-else class="mb-4 rounded-lg bg-rose-50 border border-rose-100 px-4 py-2 text-xs text-rose-700">
           Esta acción es <strong>irreversible</strong>. El usuario será borrado de la base de datos.
@@ -1129,8 +1130,8 @@
     </div>
 
     <!-- MODAL: EDITAR SEDE -->
-    <div v-if="showEditSedeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100">
+    <div v-if="showEditSedeModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showEditSedeModal = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100">
         <h3 class="mb-4 text-base font-bold text-slate-800">Editar Sede</h3>
         <form @submit.prevent="guardarEdicionSede" class="flex flex-col gap-3">
           <div>
@@ -1150,8 +1151,8 @@
     </div>
 
     <!-- MODAL: CONFIRMAR ELIMINAR SEDE -->
-    <div v-if="showConfirmDeleteSedeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
+    <div v-if="showConfirmDeleteSedeModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showConfirmDeleteSedeModal = false">
+      <div @click.stop class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
         <span class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-500">
           <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </span>
@@ -1167,8 +1168,8 @@
     </div>
 
     <!-- MODAL: EDITAR UNIDAD -->
-    <div v-if="showEditUnidadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100">
+    <div v-if="showEditUnidadModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showEditUnidadModal = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100">
         <h3 class="mb-4 text-base font-bold text-slate-800">Editar Unidad Médica</h3>
         <form @submit.prevent="guardarEdicionUnidad" class="flex flex-col gap-3">
           <div>
@@ -1190,8 +1191,8 @@
     </div>
 
     <!-- MODAL: CONFIRMAR ELIMINAR UNIDAD -->
-    <div v-if="showConfirmDeleteUnidadModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
+    <div v-if="showConfirmDeleteUnidadModal" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showConfirmDeleteUnidadModal = false">
+      <div @click.stop class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 text-center">
         <span class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-500">
           <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </span>
@@ -1207,8 +1208,8 @@
     </div>
 
     <!-- MODAL PREMIUM: REABRIR TICKET -->
-    <div v-if="showModalReabrir" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+    <div v-if="showModalReabrir" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalReabrir = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
         <div class="flex items-center gap-2 mb-2">
           <span class="text-amber-500 text-xl font-bold">↺</span>
           <h3 class="text-lg font-bold text-slate-800">Reabrir Ticket</h3>
@@ -1302,7 +1303,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import solicitudesService from '../../services/solicitudesService';
@@ -1716,7 +1717,7 @@ async function cargarNotificaciones() {
             id: idNotif,
             solicitudId: log.id_solicitud,
             tipo: 'cancelacion',
-            mensaje: `⚠️ ${log.valor_nuevo || 'Un técnico canceló la tarea asignada.'} (Ticket #${abreviarId(log.id_solicitud)})`,
+            mensaje: `${log.valor_nuevo || 'Un técnico canceló la tarea asignada.'} (Ticket #${abreviarId(log.id_solicitud)})`,
             tiempo: fechaStr,
             leida: leidas.has(idNotif)
           });
@@ -1779,6 +1780,27 @@ async function cargarNotificaciones() {
       });
     } catch (repErr) {
       console.warn('[PanelAdmin] No se pudieron cargar solicitudes para notificaciones:', repErr);
+    }
+
+    // 3. Consultar Reasignaciones solicitadas por Técnicos
+    try {
+      const resReas = await api.get('/coordinador/reasignaciones/pendientes');
+      const reas = Array.isArray(resReas.data) ? resReas.data : (resReas.data?.data || []);
+      reas.forEach(r => {
+        const idNotif = `notif-reasignacion-${r.id_solicitud_reasignacion}`;
+        const tecSol = r.tecnico_solicitante ? `${r.tecnico_solicitante.nombre} ${r.tecnico_solicitante.apellido}` : 'Un técnico';
+        const tecProp = r.tecnico_propuesto ? ` (Propone a: ${r.tecnico_propuesto.nombre} ${r.tecnico_propuesto.apellido})` : '';
+        nuevasNotif.unshift({
+          id: idNotif,
+          solicitudId: r.id_solicitud,
+          tipo: 'reasignacion',
+          mensaje: `${tecSol} solicita reasignación del Ticket #${abreviarId(r.id_solicitud)}${tecProp}. Motivo: "${r.motivo}"`,
+          tiempo: r.created_at ? formatFecha(r.created_at) : 'Reasignación',
+          leida: leidas.has(idNotif)
+        });
+      });
+    } catch (reasErr) {
+      console.warn('[PanelAdmin] No se pudieron cargar reasignaciones para notificaciones:', reasErr);
     }
 
     // Ordenar: no leídas primero y luego por novedad
@@ -2201,6 +2223,7 @@ function abrirModalEditarUsuario(u) {
     apellido: u.apellido ?? '',
     correo: u.correo ?? '',
     id_rol: u.id_rol ?? roles.value.find(r => r.nombre_rol === u.rol)?.id_rol ?? '',
+    id_sede: u.id_sede ?? u.sede?.id_sede ?? '',
     password: ''
   };
   showConfirmGuardarUser.value = false;
@@ -2213,6 +2236,7 @@ async function guardarEdicionUsuario() {
       correo: editUserForm.value.correo,
       id_rol: editUserForm.value.id_rol,
     };
+    if (editUserForm.value.id_sede) payload.id_sede = editUserForm.value.id_sede;
     if (editUserForm.value.password?.trim()) payload.password = editUserForm.value.password;
     await api.patch(`/admin/usuarios/${editUserForm.value.id}/editar`, payload);
     showEditUserModal.value = false;
@@ -2220,7 +2244,7 @@ async function guardarEdicionUsuario() {
     showToast("Usuario actualizado correctamente.", "success");
     cargarUsuarios();
   } catch (e) {
-    showToast(e.response?.data?.message || "Error al actualizar el usuario.", "error");
+    showToast(e.response?.data?.message || e.response?.data?.mensaje || "Error al actualizar el usuario.", "error");
     showConfirmGuardarUser.value = false;
   }
 }
@@ -2742,4 +2766,31 @@ function abreviarId(uuid) {
   const h2 = Math.abs(hash2).toString(36).toUpperCase().padStart(5, '0');
   return `${h1}${h2}`.substring(0, 9);
 }
+
+const algunModalAdminAbierto = computed(() => {
+  return showNuevaSolicitudModal.value ||
+         showUserModal.value ||
+         showSedeModal.value ||
+         showUnidadModal.value ||
+         showEditUserModal.value ||
+         showConfirmEstadoModal.value ||
+         showConfirmDeleteUserModal.value ||
+         showEditSedeModal.value ||
+         showConfirmDeleteSedeModal.value ||
+         showEditUnidadModal.value ||
+         showConfirmDeleteUnidadModal.value ||
+         showModalReabrir.value;
+});
+
+watch(algunModalAdminAbierto, (abierto) => {
+  if (abierto) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 </script>

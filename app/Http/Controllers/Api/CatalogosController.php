@@ -27,6 +27,23 @@ class CatalogosController extends Controller
         return response()->json(Rol::orderBy('nombre_rol')->get());
     }
 
+    public function personalOperativo()
+    {
+        $personal = \App\Models\User::with(['rol', 'sede'])
+            ->whereHas('rol', function ($q) {
+                $q->whereIn('nombre_rol', ['Técnico', 'Coordinador', 'tecnico', 'coordinador']);
+            })
+            ->where(function ($q) {
+                $q->whereNull('estado')
+                  ->orWhere('estado', 'Activo')
+                  ->orWhere('estado', 1);
+            })
+            ->orderBy('nombre')
+            ->get();
+
+        return response()->json($personal);
+    }
+
     public function crearSede(Request $request)
     {
         $request->validate([

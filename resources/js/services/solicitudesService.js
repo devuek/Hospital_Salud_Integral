@@ -53,6 +53,8 @@ function mapearAlFrontend(s) {
         tecnico_id: esAsignacion ? s.id_usuario_tecnico : (s.asignacion ? s.asignacion.id_usuario_tecnico : null),
         tecnico_nombre: esAsignacion && s.tecnico ? `${s.tecnico.nombre} ${s.tecnico.apellido}` : (s.asignacion && s.asignacion.tecnico ? `${s.asignacion.tecnico.nombre} ${s.asignacion.tecnico.apellido}` : null),
         codigo_verificacion: solicitud.codigo_verificacion || s.codigo_verificacion,
+        reasignaciones: solicitud.reasignaciones || s.reasignaciones || (s.solicitud ? s.solicitud.reasignaciones : []) || [],
+        historial: solicitud.historial || s.historial || (s.solicitud ? s.solicitud.historial : []) || [],
         original: s
     };
 }

@@ -73,6 +73,72 @@
           </div>
         </div>
 
+        <!-- Campana de Notificaciones para Técnicos -->
+        <div id="tec-notificaciones" class="relative" style="position: relative; margin-right: 0.5rem;">
+          <button @click="toggleNotificaciones" class="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 focus:outline-none" style="display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 9999px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer;" title="Notificaciones de tareas">
+            <svg class="h-5 w-5 text-amber-500" style="width: 1.15rem; height: 1.15rem; color: #f59e0b;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <!-- Badge indicador si hay no leídas -->
+            <span v-if="notificacionesNoLeidas.length > 0" style="position: absolute; top: 2px; right: 2px; display: flex; height: 0.6rem; width: 0.6rem;">
+              <span class="animate-ping" style="position: absolute; display: inline-flex; height: 100%; width: 100%; border-radius: 9999px; background: #f87171; opacity: 0.75;"></span>
+              <span style="position: relative; display: inline-flex; border-radius: 9999px; height: 0.6rem; width: 0.6rem; background: #ef4444;"></span>
+            </span>
+          </button>
+
+          <!-- Dropdown Notificaciones Técnico -->
+          <div v-show="showNotificaciones" style="position: absolute; right: 0; top: 100%; margin-top: 0.5rem; z-index: 50; width: 22rem; border-radius: 1rem; border: 1px solid #f1f5f9; background: white; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 0.75rem 1rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 0.8125rem; font-weight: 700; color: #1e293b;">Notificaciones</span>
+                <span v-if="notificacionesNoLeidas.length > 0" style="border-radius: 9999px; background: #fee2e2; padding: 0.1rem 0.45rem; font-size: 0.65rem; font-weight: 800; color: #b91c1c;">
+                  {{ notificacionesNoLeidas.length }} nueva(s)
+                </span>
+              </div>
+              <button v-if="notificacionesNoLeidas.length > 0" @click="marcarTodasLeidas" style="font-size: 0.7rem; font-weight: 600; color: #2563eb; background: none; border: none; cursor: pointer;">
+                Marcar leídas
+              </button>
+            </div>
+
+            <div style="max-height: 18rem; overflow-y: auto;">
+              <div v-if="notificaciones.length === 0" style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.8rem;">
+                No tienes notificaciones pendientes.
+              </div>
+              <div
+                v-for="n in notificaciones"
+                :key="n.id"
+                @click="clickNotificacion(n)"
+                style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f8fafc; transition: all 0.15s;"
+                :style="{ background: !n.leida ? '#fef2f2' : '#ffffff' }"
+              >
+                <div style="flex-shrink: 0; margin-top: 0.15rem;">
+                  <span v-if="n.tipo === 'rechazada'" class="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  </span>
+                  <span v-else-if="n.tipo === 'reasignada'" class="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-100 text-sky-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </span>
+                  <span v-else-if="n.tipo === 'alta'" class="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  </span>
+                  <span v-else class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                  </span>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+                    <p style="font-size: 0.75rem; margin: 0; line-height: 1.35;" :style="{ fontWeight: !n.leida ? '800' : '600', color: !n.leida ? '#7f1d1d' : '#334155' }">
+                      {{ n.mensaje }}
+                    </p>
+                    <span v-if="!n.leida" style="width: 6px; height: 6px; border-radius: 9999px; background: #ef4444; flex-shrink: 0; margin-top: 4px;"></span>
+                  </div>
+                  <span style="font-size: 0.65rem; color: #94a3b8; display: block; margin-top: 0.25rem;">{{ n.tiempo }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="user-info-badge">
           <div class="user-avatar-circle" @click="menuAbierto = !menuAbierto">{{ userInitial }}</div>
           <div class="user-info-text">
@@ -105,6 +171,19 @@
         </div>
       </div>
 
+      <!-- Banner global de Reasignaciones Rechazadas si las hay -->
+      <div v-if="tareasConReasignacionRechazada.length > 0" style="margin-bottom: 1.25rem; border-radius: 12px; border: 1px solid #fca5a5; background: #fef2f2; padding: 1rem; color: #991b1b; display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span style="display: flex; width: 2rem; height: 2rem; border-radius: 8px; background: #fee2e2; color: #dc2626; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </span>
+        <div style="font-size: 0.8125rem; line-height: 1.45;">
+          <p style="font-weight: 800; margin: 0 0 0.25rem 0; font-size: 0.875rem; color: #7f1d1d;">
+            El Coordinador ha rechazado tu solicitud de reasignación
+          </p>
+          Debes continuar con la ejecución del trabajo asignado. Si tienes algún inconveniente o no puedes realizarlo, por favor <strong>comunícate directamente con el Coordinador</strong>.
+        </div>
+      </div>
+
       <p v-if="loading" class="state-msg">Cargando tareas...</p>
       <p v-else-if="error" class="state-msg error">{{ error }}</p>
       <p v-else-if="tareas.length === 0" class="state-msg">No tienes tareas asignadas en este momento.</p>
@@ -118,9 +197,24 @@
           </div>
 
           <h3 class="card-title">{{ t.titulo }}</h3>
-<p class="card-meta">{{ t.ubicacion }} <span v-if="t.departamento"> · {{ t.departamento }}</span></p>
-<p v-if="t.descripcion" class="card-descripcion">{{ t.descripcion }}</p>
-<p class="card-date">{{ formatFecha(t.fecha) }}</p>
+          <p class="card-meta">{{ t.ubicacion }} <span v-if="t.departamento"> · {{ t.departamento }}</span></p>
+          <p v-if="t.descripcion" class="card-descripcion">{{ t.descripcion }}</p>
+          
+          <!-- Alerta de Reasignación en la Tarjeta -->
+          <div v-if="estadoReasignacionTarea(t) === 'Rechazada'" style="display: flex; align-items: center; gap: 0.4rem; margin: 0.5rem 0; padding: 0.4rem 0.6rem; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; font-size: 0.72rem; color: #991b1b; font-weight: 700;">
+            <svg class="h-3.5 w-3.5 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <span>Reasignación rechazada por Coordinación: habla con el Coordinador.</span>
+          </div>
+          <div v-else-if="estadoReasignacionTarea(t) === 'Reasignada'" style="display: flex; align-items: center; gap: 0.4rem; margin: 0.5rem 0; padding: 0.4rem 0.6rem; border-radius: 6px; background: #f0f9ff; border: 1px solid #bae6fd; font-size: 0.72rem; color: #0369a1; font-weight: 700;">
+            <svg class="h-3.5 w-3.5 text-sky-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Reasignada por Coordinación. Si no estás de acuerdo, habla con el Coordinador.</span>
+          </div>
+          <div v-else-if="estadoReasignacionTarea(t) === 'Pendiente'" style="display: flex; align-items: center; gap: 0.4rem; margin: 0.5rem 0; padding: 0.4rem 0.6rem; border-radius: 6px; background: #eef2ff; border: 1px solid #c7d2fe; font-size: 0.72rem; color: #3730a3; font-weight: 700;">
+            <svg class="h-3.5 w-3.5 text-indigo-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <span>Reasignación solicitada en trámite con Coordinación.</span>
+          </div>
+
+          <p class="card-date">{{ formatFecha(t.fecha) }}</p>
           <div class="card-bottom">
             <span class="status-badge" :class="estadoClase(t.estado)">{{ t.estado }}</span>
             <div class="card-actions">
@@ -225,6 +319,36 @@ const filtros = [
   { value: 'Completada', label: 'Completadas' },
 ];
 
+const miIdUsuario = computed(() => currentUser.value?.id_usuario || authStore.user?.id_usuario || null);
+
+function estadoReasignacionTarea(t) {
+  const reas = t.reasignaciones || t.original?.reasignaciones || (t.original?.solicitud?.reasignaciones) || [];
+  const miId = miIdUsuario.value;
+
+  const rechazada = reas.find(r => r.estado === 'Rechazada' && (r.id_usuario_tecnico_solicitante === miId || !r.id_usuario_tecnico_solicitante));
+  if (rechazada) return 'Rechazada';
+
+  const pendiente = reas.find(r => r.estado === 'Pendiente' && r.id_usuario_tecnico_solicitante === miId);
+  if (pendiente) return 'Pendiente';
+
+  const aprobada = reas.find(r => r.estado === 'Aprobada' && r.id_usuario_tecnico_solicitante !== miId);
+  if (aprobada) return 'Reasignada';
+
+  // Verificar en historial
+  const hist = t.historial || t.original?.historial || (t.original?.solicitud?.historial) || [];
+  const eventoRech = hist.find(h => h.campo_modificado === 'reasignacion_rechazada');
+  if (eventoRech) return 'Rechazada';
+
+  const eventoAprob = hist.find(h => h.campo_modificado === 'reasignacion_aprobada');
+  if (eventoAprob) return 'Reasignada';
+
+  return null;
+}
+
+const tareasConReasignacionRechazada = computed(() => {
+  return (tareas.value || []).filter(t => estadoReasignacionTarea(t) === 'Rechazada');
+});
+
 const tareasFiltradas = computed(() => {
   if (filtroActivo.value === 'todas') return tareas.value || [];
   return (tareas.value || []).filter(t => t.estado === filtroActivo.value);
@@ -273,12 +397,98 @@ function siguienteEstado(estadoActual) {
   return null;
 }
 
+const notificaciones = ref([]);
+const showNotificaciones = ref(false);
+
+const notificacionesNoLeidas = computed(() => notificaciones.value.filter(n => !n.leida));
+
+function toggleNotificaciones() {
+  showNotificaciones.value = !showNotificaciones.value;
+}
+
+function marcarTodasLeidas() {
+  const leidas = JSON.parse(localStorage.getItem('notif_tecnico_leidas') || '[]');
+  notificaciones.value.forEach(n => {
+    n.leida = true;
+    if (!leidas.includes(n.id)) leidas.push(n.id);
+  });
+  localStorage.setItem('notif_tecnico_leidas', JSON.stringify(leidas));
+}
+
+function clickNotificacion(n) {
+  n.leida = true;
+  const leidas = JSON.parse(localStorage.getItem('notif_tecnico_leidas') || '[]');
+  if (!leidas.includes(n.id)) {
+    leidas.push(n.id);
+    localStorage.setItem('notif_tecnico_leidas', JSON.stringify(leidas));
+  }
+  showNotificaciones.value = false;
+  if (n.tareaId) {
+    router.push(`/tareas/${n.tareaId}`);
+  }
+}
+
+function construirNotificacionesTecnico() {
+  const leidas = new Set(JSON.parse(localStorage.getItem('notif_tecnico_leidas') || '[]'));
+  const lista = [];
+  const miId = miIdUsuario.value;
+
+  (tareas.value || []).forEach(t => {
+    const reas = t.reasignaciones || t.original?.reasignaciones || (t.original?.solicitud?.reasignaciones) || [];
+    
+    // 1. Reasignaciones Rechazadas
+    const rech = reas.find(r => r.estado === 'Rechazada');
+    if (rech) {
+      const idNotif = `notif-tec-rech-${rech.id_solicitud_reasignacion || t.id}`;
+      const motivo = rech.comentarios_coordinador ? `: "${rech.comentarios_coordinador}"` : '';
+      lista.unshift({
+        id: idNotif,
+        tareaId: t.id,
+        tipo: 'rechazada',
+        mensaje: `El Coordinador rechazó la reasignación de #${abreviarId(t.id)}${motivo}. Debes continuar el trabajo.`,
+        tiempo: rech.updated_at ? formatFecha(rech.updated_at) : 'Rechazada',
+        leida: leidas.has(idNotif)
+      });
+    }
+
+    // 2. Reasignaciones Aprobadas (el técnico es el receptor)
+    const aprob = reas.find(r => r.estado === 'Aprobada' && r.id_usuario_tecnico_solicitante !== miId);
+    if (aprob) {
+      const idNotif = `notif-tec-aprob-${aprob.id_solicitud_reasignacion || t.id}`;
+      lista.push({
+        id: idNotif,
+        tareaId: t.id,
+        tipo: 'reasignada',
+        mensaje: `Se te ha reasignado el Ticket #${abreviarId(t.id)} (${t.titulo}). Habla con el coordinador si no estás de acuerdo.`,
+        tiempo: aprob.updated_at ? formatFecha(aprob.updated_at) : 'Reasignada',
+        leida: leidas.has(idNotif)
+      });
+    }
+
+    // 3. Tareas en Prioridad Alta
+    if (t.prioridad === 'Alta' && t.estado !== 'Completada') {
+      const idNotif = `notif-tec-alta-${t.id}`;
+      lista.push({
+        id: idNotif,
+        tareaId: t.id,
+        tipo: 'alta',
+        mensaje: `Tarea de Prioridad Alta #${abreviarId(t.id)}: ${t.titulo} en ${t.ubicacion}.`,
+        tiempo: 'Urgente',
+        leida: leidas.has(idNotif)
+      });
+    }
+  });
+
+  notificaciones.value = lista;
+}
+
 async function cargarTareas() {
   loading.value = true;
   error.value = '';
   try {
     const data = await solicitudesService.listar();
     tareas.value = Array.isArray(data) ? data : (data.data ?? []);
+    construirNotificacionesTecnico();
   } catch (e) {
     error.value = 'No se pudieron cargar tus tareas.';
   } finally {
@@ -316,6 +526,16 @@ async function avanzarEstado(tarea) {
     cambiandoId.value = null;
   }
 }
+
+onMounted(async () => {
+  await cargarTareas();
+  document.addEventListener('click', (e) => {
+    const el = document.getElementById('tec-notificaciones');
+    if (el && !el.contains(e.target)) {
+      showNotificaciones.value = false;
+    }
+  });
+});
 
 async function cerrarSesion() {
   menuAbierto.value = false;

@@ -93,6 +93,62 @@
               </p>
             </section>
 
+            <!-- SECCIÓN: SOLICITUD DE REASIGNACIÓN PENDIENTE (COORDINACIÓN) -->
+            <section v-if="esCoordinadorOAdmin && reasignacionPendiente" class="info-card reasignacion-alerta-card">
+              <div class="reasignacion-alerta-header">
+                <span class="reasignacion-alerta-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </span>
+                <div>
+                  <h3 style="margin: 0; color: #3730a3; font-weight: 800; font-size: 1rem;">Solicitud de Reasignación Pendiente</h3>
+                  <p style="margin: 2px 0 0 0; font-size: 0.78rem; color: #6366f1;">El técnico responsable solicita que este ticket sea reasignado</p>
+                </div>
+              </div>
+
+              <div class="reasignacion-detalle-grid">
+                <div>
+                  <p class="info-label">TÉCNICO SOLICITANTE</p>
+                  <p class="info-value text-slate-800 font-bold">
+                    {{ reasignacionPendiente.tecnico_solicitante?.nombre }} {{ reasignacionPendiente.tecnico_solicitante?.apellido }}
+                  </p>
+                </div>
+                <div>
+                  <p class="info-label">TÉCNICO O COORDINADOR PROPUESTO</p>
+                  <p class="info-value font-bold" :class="reasignacionPendiente.tecnico_propuesto ? 'text-indigo-700' : 'text-slate-500'">
+                    {{ reasignacionPendiente.tecnico_propuesto ? `${reasignacionPendiente.tecnico_propuesto.nombre} ${reasignacionPendiente.tecnico_propuesto.apellido}` : 'Sin propuesta (decisión libre del Coordinador)' }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="reasignacion-motivo-box">
+                <p class="info-label" style="margin-bottom: 0.2rem;">MOTIVO EXPRESADO POR EL TÉCNICO</p>
+                <p style="margin: 0; font-size: 0.85rem; color: #1e293b; font-style: italic;">
+                  "{{ reasignacionPendiente.motivo }}"
+                </p>
+              </div>
+
+              <div class="reasignacion-acciones-row">
+                <button
+                  class="aceptar-reasign-btn"
+                  @click="abrirModalResolverReasignacion('Aprobada')"
+                  :disabled="resolviendoReasignacion"
+                >
+                  <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  Aceptar y Reasignar
+                </button>
+                <button
+                  class="rechazar-reasign-btn"
+                  @click="abrirModalResolverReasignacion('Rechazada')"
+                  :disabled="resolviendoReasignacion"
+                >
+                  <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                  Rechazar Solicitud
+                </button>
+              </div>
+            </section>
+
             <section v-if="esCoordinadorOAdmin" class="info-card">
               <h3 class="flex items-center gap-2">
                 <span class="card-icon text-slate-500">
@@ -108,7 +164,9 @@
               <div class="reasignar-row">
                 <select v-model="tecnicoSeleccionado" class="tecnico-select-lg">
                   <option :value="null">Sin asignar</option>
-                  <option v-for="t in tecnicos" :key="t.id" :value="t.id">{{ t.name }}</option>
+                  <option v-for="t in tecnicos" :key="t.id" :value="t.id" :disabled="String(t.id) === String(solicitud.tecnico_id)">
+                    {{ t.name }} {{ String(t.id) === String(solicitud.tecnico_id) ? '(Asignado actualmente)' : '' }}
+                  </option>
                 </select>
                 <button
                   class="guardar-tecnico-btn"
@@ -190,35 +248,34 @@
       </template>
     </main>
 
-    <!-- Modal de Edición de Solicitud (Exclusivo Solicitante) -->
-    <div v-if="mostrandoModalEdicion" class="modal-overlay">
-      <div class="modal-container">
+    <!-- MODAL EDICIÓN DE SOLICITUD -->
+    <div v-if="mostrandoModalEdicion" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" @click.self="mostrandoModalEdicion = false">
+      <div class="modal-card modal-lg" @click.stop>
         <div class="modal-header">
-          <h3>Editar Solicitud</h3>
-          <button class="close-btn" @click="mostrandoModalEdicion = false">&times;</button>
+          <h3 class="modal-title">Editar Solicitud</h3>
+          <button class="modal-close" @click="mostrandoModalEdicion = false">&times;</button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Título / Servicio</label>
-            <input type="text" v-model="editForm.titulo" class="form-input" />
+            <label class="form-label">Título</label>
+            <input v-model="editForm.titulo" type="text" class="form-input" placeholder="Título de la solicitud" />
           </div>
           <div class="form-group">
             <label class="form-label">Descripción</label>
-            <textarea v-model="editForm.descripcion" class="form-textarea" rows="4"></textarea>
+            <textarea v-model="editForm.descripcion" rows="3" class="form-textarea" placeholder="Descripción del problema"></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Prioridad</label>
             <select v-model="editForm.prioridad" class="form-select">
-              <option value="Baja">Baja</option>
-              <option value="Media">Media</option>
               <option value="Alta">Alta</option>
+              <option value="Media">Media</option>
+              <option value="Baja">Baja</option>
             </select>
           </div>
-          
           <div class="form-group">
-            <label class="form-label">Evidencias Adjuntas</label>
-            <div v-if="evidencias.length > 0" class="mini-evidencia-list">
-              <div v-for="ev in evidencias" :key="ev.id" class="mini-evidencia-item">
+            <label class="form-label">Evidencias Actuales</label>
+            <div v-if="evidencias.length" class="evidencias-mini-grid">
+              <div v-for="ev in evidencias" :key="ev.id_evidencia" class="mini-evidencia-item">
                 <img v-if="esImagen(ev)" :src="urlEvidencia(ev)" class="mini-evidencia-thumb" />
                 <span v-else class="mini-evidencia-icon">
                   <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -251,16 +308,105 @@
       </div>
     </div>
 
+    <!-- MODAL RESOLVER REASIGNACIÓN (COORDINADOR) -->
+    <div v-if="showModalResolverReasignacion" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalResolverReasignacion = false">
+      <div class="modal-card animate-in fade-in zoom-in duration-200" @click.stop style="background: #ffffff; border-radius: 16px; padding: 1.5rem; width: 100%; max-width: 480px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; text-align: left;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <span style="display: flex; width: 2.5rem; height: 2.5rem; border-radius: 12px; align-items: center; justify-content: center;"
+                :style="{ background: decisionResolver === 'Aprobada' ? '#ecfdf5' : '#fef2f2', color: decisionResolver === 'Aprobada' ? '#059669' : '#dc2626' }">
+            <svg v-if="decisionResolver === 'Aprobada'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <svg v-else class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #1e293b;">
+              {{ decisionResolver === 'Aprobada' ? 'Aprobar Reasignación' : 'Rechazar Solicitud de Reasignación' }}
+            </h3>
+            <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: #64748b;">
+              Ticket #SOL-{{ abreviarId(solicitud.id) }}
+            </p>
+          </div>
+        </div>
+
+        <div v-if="decisionResolver === 'Aprobada'" style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem; font-size: 0.8rem; color: #475569;">
+            <strong>Técnico Solicitante:</strong> {{ reasignacionPendiente?.tecnico_solicitante?.nombre }} {{ reasignacionPendiente?.tecnico_solicitante?.apellido }}<br>
+            <strong>Motivo:</strong> <em>"{{ reasignacionPendiente?.motivo }}"</em>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem;">
+              Seleccione el Nuevo Técnico Responsable <span style="color: #dc2626;">*</span>
+            </label>
+            <select v-model="tecnicoNuevoId" style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem; background: #fff;">
+              <option :value="null" disabled>-- Seleccione un técnico --</option>
+              <option
+                v-for="t in tecnicos"
+                :key="t.id"
+                :value="t.id"
+                :disabled="t.id === reasignacionPendiente?.id_usuario_tecnico_solicitante || String(t.id) === String(solicitud.tecnico_id)"
+              >
+                {{ t.name }} {{ (t.id === reasignacionPendiente?.id_usuario_tecnico_solicitante || String(t.id) === String(solicitud.tecnico_id)) ? '(Solicitante / Asignado actual)' : '' }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem;">
+              Comentarios del Coordinador (Opcional)
+            </label>
+            <textarea v-model="comentariosResolver" rows="2" placeholder="Notas sobre la reasignación..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.82rem; box-sizing: border-box;"></textarea>
+          </div>
+        </div>
+
+        <div v-else style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.25rem;">
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 0.75rem; font-size: 0.8rem; color: #991b1b;">
+            Al rechazar, el técnico actual deberá continuar con la atención de la solicitud y recibirá una notificación formal con el motivo del rechazo.
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.4rem;">
+              Motivo del Rechazo <span style="color: #dc2626;">*</span>
+            </label>
+            <textarea v-model="comentariosResolver" rows="3" required placeholder="Explique al técnico por qué no es posible reasignar la tarea..." style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.82rem; box-sizing: border-box;"></textarea>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" @click="showModalResolverReasignacion = false" style="padding: 0.55rem 1rem; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #475569; font-weight: 600; font-size: 0.8rem; cursor: pointer;">
+            Cancelar
+          </button>
+          <button type="button" @click="confirmarResolverReasignacion" :disabled="resolviendoReasignacion"
+                  :style="{
+                    padding: '0.55rem 1.2rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: decisionResolver === 'Aprobada' ? '#059669' : '#dc2626',
+                    color: '#ffffff',
+                    fontWeight: '700',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
+                  }">
+            {{ resolviendoReasignacion ? 'Procesando...' : (decisionResolver === 'Aprobada' ? 'Confirmar y Reasignar' : 'Confirmar Rechazo') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import solicitudesService from '../../services/solicitudesService';
 import tecnicosService from '../../services/tecnicosService';
 import evidenciasService from '../../services/evidenciasService';
 import authService from '../../services/authService';
+import api from '../../services/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -268,6 +414,78 @@ const router = useRouter();
 const solicitud = ref({});
 const loading = ref(true);
 const error = ref('');
+
+const reasignacionPendiente = computed(() => {
+  const reas = solicitud.value?.original?.reasignaciones || [];
+  return reas.find(r => r.estado === 'Pendiente') || null;
+});
+
+const showModalResolverReasignacion = ref(false);
+const decisionResolver = ref('Aprobada');
+const tecnicoNuevoId = ref(null);
+const comentariosResolver = ref('');
+const resolviendoReasignacion = ref(false);
+
+function abrirModalResolverReasignacion(decision) {
+  decisionResolver.value = decision;
+  comentariosResolver.value = '';
+  if (decision === 'Aprobada') {
+    tecnicoNuevoId.value = reasignacionPendiente.value?.id_usuario_tecnico_propuesto || null;
+  } else {
+    tecnicoNuevoId.value = null;
+  }
+  showModalResolverReasignacion.value = true;
+}
+
+async function confirmarResolverReasignacion() {
+  const reasObj = reasignacionPendiente.value;
+  if (!reasObj || resolviendoReasignacion.value) return;
+
+  if (decisionResolver.value === 'Aprobada' && !tecnicoNuevoId.value) {
+    alert('Debe seleccionar el nuevo técnico responsable.');
+    return;
+  }
+
+  resolviendoReasignacion.value = true;
+  try {
+    const payload = {
+      decision: decisionResolver.value,
+      id_usuario_tecnico_nuevo: decisionResolver.value === 'Aprobada' ? tecnicoNuevoId.value : undefined,
+      comentarios_coordinador: comentariosResolver.value.trim() || null
+    };
+
+    await api.patch(`/coordinador/reasignaciones/${reasObj.id_solicitud_reasignacion}/resolver`, payload);
+    
+    // Actualizar estado en memoria para que la tarjeta de pendiente desaparezca al instante
+    if (solicitud.value?.original?.reasignaciones) {
+      solicitud.value.original.reasignaciones.forEach(r => {
+        if (r.estado === 'Pendiente' || r.id_solicitud_reasignacion === reasObj.id_solicitud_reasignacion) {
+          r.estado = decisionResolver.value;
+          r.comentarios_coordinador = payload.comentarios_coordinador;
+        }
+      });
+    }
+    if (solicitud.value?.reasignaciones) {
+      solicitud.value.reasignaciones.forEach(r => {
+        if (r.estado === 'Pendiente' || r.id_solicitud_reasignacion === reasObj.id_solicitud_reasignacion) {
+          r.estado = decisionResolver.value;
+          r.comentarios_coordinador = payload.comentarios_coordinador;
+        }
+      });
+    }
+
+    showModalResolverReasignacion.value = false;
+    await Promise.all([
+      cargarSolicitud(),
+      cargarHistorial()
+    ]);
+  } catch (e) {
+    console.error('Error al resolver reasignación:', e);
+    alert(e.response?.data?.mensaje || e.response?.data?.message || 'No se pudo procesar la resolución de reasignación.');
+  } finally {
+    resolviendoReasignacion.value = false;
+  }
+}
 
 const esCoordinadorOAdmin = computed(() => {
   const user = authService.getUser();
@@ -490,6 +708,22 @@ async function guardarTecnico() {
     guardandoTecnico.value = false;
   }
 }
+
+const algunModalAbierto = computed(() => {
+  return mostrandoModalEdicion.value || showModalResolverReasignacion.value;
+});
+
+watch(algunModalAbierto, (abierto) => {
+  if (abierto) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 
 onMounted(() => {
   cargarSolicitud();
@@ -807,5 +1041,82 @@ function abreviarId(uuid) {
 }
 .remove-preview-btn:hover {
   background-color: rgba(15, 23, 42, 0.85);
+}
+
+.reasignacion-alerta-card {
+  background: linear-gradient(135deg, #fdf4ff 0%, #eef2ff 100%) !important;
+  border: 1.5px solid #c7d2fe !important;
+  border-radius: 14px;
+}
+.reasignacion-alerta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.reasignacion-alerta-icon {
+  display: flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  background: #e0e7ff;
+  border-radius: 10px;
+}
+.reasignacion-detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  background: #ffffff;
+  border: 1px solid #e0e7ff;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.85rem;
+}
+.reasignacion-motivo-box {
+  background: #ffffff;
+  border: 1px solid #e0e7ff;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+.reasignacion-acciones-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.aceptar-reasign-btn {
+  display: inline-flex;
+  align-items: center;
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  transition: all 0.15s;
+}
+.aceptar-reasign-btn:hover {
+  background: #047857;
+}
+.rechazar-reasign-btn {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rechazar-reasign-btn:hover {
+  background: #fef2f2;
 }
 </style>

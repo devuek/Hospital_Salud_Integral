@@ -22,6 +22,8 @@ Route::post('/reset-password', [AuthController::class, 'restablecerPassword']);
 Route::get('/catalogos/sedes', [CatalogosController::class, 'sedes']);
 Route::get('/catalogos/sedes/{id}/unidades', [CatalogosController::class, 'unidadesPorSede']);
 Route::get('/catalogos/roles', [CatalogosController::class, 'roles']);
+Route::get('/catalogos/personal-operativo', [CatalogosController::class, 'personalOperativo']);
+Route::get('/catalogos/tecnicos', [CatalogosController::class, 'personalOperativo']);
 Route::post('/pdf/download', [ReportesController::class, 'descargarPDFProxy']);
 
 // Rutas protegidas

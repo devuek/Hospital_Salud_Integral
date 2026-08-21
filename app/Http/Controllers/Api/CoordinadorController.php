@@ -222,21 +222,32 @@ class CoordinadorController extends Controller
         $solicitud = $reasignacion->solicitud;
 
         if ($request->decision === 'Rechazada') {
-            $reasignacion->update([
-                'estado' => 'Rechazada',
-                'id_usuario_coordinador' => $request->user()->id_usuario,
-                'comentarios_coordinador' => $request->comentarios_coordinador,
+            \App\Models\SolicitudReasignacion::where('id_solicitud', $solicitud->id_solicitud)
+                ->where('estado', 'Pendiente')
+                ->update([
+                    'estado' => 'Rechazada',
+                    'id_usuario_coordinador' => $request->user()->id_usuario,
+                    'comentarios_coordinador' => $request->comentarios_coordinador,
+                ]);
+
+            $motivoTxt = $request->comentarios_coordinador ? " Motivo: {$request->comentarios_coordinador}" : '';
+            \App\Models\HistorialCambio::create([
+                'id_solicitud' => $solicitud->id_solicitud,
+                'id_usuario' => $request->user()->id_usuario,
+                'campo_modificado' => 'reasignacion_rechazada',
+                'valor_anterior' => $reasignacion->tecnicoSolicitante?->nombre,
+                'valor_nuevo' => "El coordinador rechazó la solicitud de reasignación.{$motivoTxt}",
             ]);
 
             return response()->json([
                 'mensaje' => 'La solicitud de reasignación ha sido rechazada de manera formal.',
-                'reasignacion' => $reasignacion,
+                'reasignacion' => $reasignacion->load(['tecnicoSolicitante', 'tecnicoPropuesto']),
             ]);
         }
 
         $nuevoTecnico = \App\Models\User::with('rol')->findOrFail($request->id_usuario_tecnico_nuevo);
-        if (!$nuevoTecnico->tieneRol('Técnico')) {
-            return response()->json(['mensaje' => 'El nuevo usuario propuesto no posee el rol de Técnico.'], 422);
+        if (!$nuevoTecnico->tieneRol('Técnico') && !$nuevoTecnico->tieneRol('Coordinador')) {
+            return response()->json(['mensaje' => 'El nuevo usuario propuesto debe poseer el rol de Técnico o Coordinador.'], 422);
         }
 
         $asignacion = Asignacion::where('id_solicitud', $solicitud->id_solicitud)->first();
@@ -280,15 +291,25 @@ class CoordinadorController extends Controller
             $nuevoTecnicoNombre
         );
 
-        $reasignacion->update([
-            'estado' => 'Aprobada',
-            'id_usuario_coordinador' => $request->user()->id_usuario,
-            'comentarios_coordinador' => $request->comentarios_coordinador,
+        \App\Models\HistorialCambio::create([
+            'id_solicitud' => $solicitud->id_solicitud,
+            'id_usuario' => $request->user()->id_usuario,
+            'campo_modificado' => 'reasignacion_aprobada',
+            'valor_anterior' => $tecnicoAnteriorNombre,
+            'valor_nuevo' => "Reasignación aprobada por el coordinador. Nuevo técnico asignado: {$nuevoTecnicoNombre}.",
         ]);
+
+        \App\Models\SolicitudReasignacion::where('id_solicitud', $solicitud->id_solicitud)
+            ->where('estado', 'Pendiente')
+            ->update([
+                'estado' => 'Aprobada',
+                'id_usuario_coordinador' => $request->user()->id_usuario,
+                'comentarios_coordinador' => $request->comentarios_coordinador,
+            ]);
 
         return response()->json([
             'mensaje' => 'La solicitud de reasignación ha sido aprobada y el ticket reasignado con éxito.',
-            'reasignacion' => $reasignacion->load('solicitud'),
+            'reasignacion' => $reasignacion->load(['solicitud', 'tecnicoSolicitante', 'tecnicoPropuesto']),
         ]);
     }
 

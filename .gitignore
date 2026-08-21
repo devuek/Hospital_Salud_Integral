@@ -31,4 +31,6 @@ WeMod-Setup.exe
 *.odt
 .~lock.*
 *.pdf
-!reporte-solicitudes.pdf
+*.docx
+*.doc
+*.tmp

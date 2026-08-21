@@ -49,6 +49,14 @@ class SolicitudesController extends Controller
             'tipo_servicio' => 'required|in:Soporte Técnico,Servicios Generales',
             'titulo'        => 'required|string|max:200',
             'descripcion'   => 'required|string',
+        ], [
+            'id_unidad.required'     => 'La unidad médica es obligatoria.',
+            'id_unidad.exists'       => 'La unidad médica seleccionada no es válida.',
+            'tipo_servicio.required' => 'El tipo de servicio es obligatorio.',
+            'tipo_servicio.in'       => 'El tipo de servicio debe ser "Soporte Técnico" o "Servicios Generales".',
+            'titulo.required'        => 'El título de la solicitud es obligatorio.',
+            'titulo.max'             => 'El título no puede exceder los 200 caracteres.',
+            'descripcion.required'   => 'La descripción detallada del problema es obligatoria.',
         ]);
 
         $solicitud = Solicitud::create([
@@ -77,6 +85,8 @@ class SolicitudesController extends Controller
             'asignacion.tecnico',
             'asignacion.coordinador',
             'asignacion.bitacoras',
+            'reasignaciones.tecnicoSolicitante',
+            'reasignaciones.tecnicoPropuesto',
             'encuesta',
             'historial.usuario',
         ])->findOrFail($id);
@@ -112,6 +122,9 @@ class SolicitudesController extends Controller
             'descripcion' => 'sometimes|string',
             'id_unidad'   => 'sometimes|exists:unidades,id_unidad',
             'prioridad'   => 'sometimes|string',
+        ], [
+            'id_unidad.exists' => 'La unidad médica seleccionada no es válida.',
+            'titulo.max'       => 'El título no puede exceder los 200 caracteres.',
         ]);
 
         $valoresAnteriores = [

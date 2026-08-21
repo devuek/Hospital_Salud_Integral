@@ -17,8 +17,15 @@ class TecnicoController extends Controller
 
     public function misAsignaciones(Request $request)
     {
-        $perPage = $request->integer('per_page', 15);
-        $asignaciones = Asignacion::with(['solicitud.unidad.sede', 'solicitud.evidencias', 'bitacoras'])
+        $perPage = $request->integer('per_page', 25);
+        $asignaciones = Asignacion::with([
+            'solicitud.unidad.sede',
+            'solicitud.evidencias',
+            'solicitud.reasignaciones.tecnicoSolicitante',
+            'solicitud.reasignaciones.tecnicoPropuesto',
+            'solicitud.historial',
+            'bitacoras'
+        ])
             ->where('id_usuario_tecnico', $request->user()->id_usuario)
             ->latest()
             ->paginate($perPage);
@@ -149,7 +156,10 @@ class TecnicoController extends Controller
         if (!$request->user()->tieneRol('Administrador')) {
             $query->where('id_usuario_tecnico', $request->user()->id_usuario);
         }
-        $asignacion = $query->findOrFail($idAsignacion);
+        $asignacion = $query->where(function($q) use ($idAsignacion) {
+            $q->where('id_asignacion', $idAsignacion)
+              ->orWhere('id_solicitud', $idAsignacion);
+        })->firstOrFail();
 
         $solicitud = $asignacion->solicitud;
 
@@ -165,24 +175,53 @@ class TecnicoController extends Controller
         ]);
 
         if ($request->filled('id_usuario_tecnico_propuesto')) {
-            $tecnicoPropuesto = \App\Models\User::with('rol')->findOrFail($request->id_usuario_tecnico_propuesto);
-            if (!$tecnicoPropuesto->tieneRol('Técnico')) {
+            if ($request->id_usuario_tecnico_propuesto === $request->user()->id_usuario || 
+                ($asignacion && $request->id_usuario_tecnico_propuesto === $asignacion->id_usuario_tecnico)) {
                 return response()->json([
-                    'mensaje' => 'El usuario propuesto no posee el rol de Técnico.',
+                    'mensaje' => 'No es posible proponerte a ti mismo para la reasignación.',
+                ], 422);
+            }
+
+            $propuesto = \App\Models\User::with('rol')->findOrFail($request->id_usuario_tecnico_propuesto);
+            if (!$propuesto->tieneRol('Técnico') && !$propuesto->tieneRol('Coordinador')) {
+                return response()->json([
+                    'mensaje' => 'El usuario propuesto debe poseer el rol de Técnico o Coordinador.',
                 ], 422);
             }
         }
 
-        $solicitudReasignacion = \App\Models\SolicitudReasignacion::create([
+        $existente = \App\Models\SolicitudReasignacion::where('id_solicitud', $solicitud->id_solicitud)
+            ->where('estado', 'Pendiente')
+            ->first();
+
+        if ($existente) {
+            $existente->update([
+                'id_usuario_tecnico_solicitante' => $request->user()->id_usuario,
+                'id_usuario_tecnico_propuesto' => $request->id_usuario_tecnico_propuesto,
+                'motivo' => $request->motivo,
+            ]);
+            $solicitudReasignacion = $existente;
+        } else {
+            $solicitudReasignacion = \App\Models\SolicitudReasignacion::create([
+                'id_solicitud' => $solicitud->id_solicitud,
+                'id_usuario_tecnico_solicitante' => $request->user()->id_usuario,
+                'id_usuario_tecnico_propuesto' => $request->id_usuario_tecnico_propuesto,
+                'motivo' => $request->motivo,
+                'estado' => 'Pendiente',
+            ]);
+        }
+
+        // Registrar en historial y auditoría para que al coordinador le aparezca la alerta
+        \App\Models\HistorialCambio::create([
             'id_solicitud' => $solicitud->id_solicitud,
-            'id_usuario_tecnico_solicitante' => $request->user()->id_usuario,
-            'id_usuario_tecnico_propuesto' => $request->id_usuario_tecnico_propuesto,
-            'motivo' => $request->motivo,
-            'estado' => 'Pendiente',
+            'id_usuario' => $request->user()->id_usuario,
+            'campo_modificado' => 'solicitud_reasignacion',
+            'valor_anterior' => $request->user()->nombre,
+            'valor_nuevo' => "Solicitud de reasignación solicitada por {$request->user()->nombre}. Motivo: {$request->motivo}",
         ]);
 
         return response()->json([
-            'mensaje' => 'Solicitud de reasignación enviada con éxito al líder técnico/coordinador.',
+            'mensaje' => 'Solicitud de reasignación enviada con éxito al coordinador.',
             'solicitud_reasignacion' => $solicitudReasignacion,
         ], 201);
     }

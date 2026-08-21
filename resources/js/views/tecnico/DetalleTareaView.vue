@@ -26,12 +26,65 @@
       </nav>
 
       <div class="header-actions">
-        <span class="icon-btn text-slate-500 hover:text-slate-700 transition-colors">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-        </span>
-        <span class="icon-btn text-slate-500 hover:text-slate-700 transition-colors">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" /></svg>
-        </span>
+        <!-- Campana de Notificaciones para Técnicos -->
+        <div id="tec-notif-detalle" class="relative" style="position: relative; margin-right: 0.5rem;">
+          <button @click="toggleNotificaciones" class="relative rounded-full p-2 text-slate-500 hover:bg-slate-100 focus:outline-none" style="display: flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 9999px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer;" title="Notificaciones">
+            <svg class="h-5 w-5 text-amber-500" style="width: 1.15rem; height: 1.15rem; color: #f59e0b;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span v-if="notificacionesNoLeidas.length > 0" style="position: absolute; top: 2px; right: 2px; display: flex; height: 0.6rem; width: 0.6rem;">
+              <span class="animate-ping" style="position: absolute; display: inline-flex; height: 100%; width: 100%; border-radius: 9999px; background: #f87171; opacity: 0.75;"></span>
+              <span style="position: relative; display: inline-flex; border-radius: 9999px; height: 0.6rem; width: 0.6rem; background: #ef4444;"></span>
+            </span>
+          </button>
+
+          <!-- Dropdown Notificaciones Técnico -->
+          <div v-show="showNotificaciones" style="position: absolute; right: 0; top: 100%; margin-top: 0.5rem; z-index: 50; width: 22rem; border-radius: 1rem; border: 1px solid #f1f5f9; background: white; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding: 0.75rem 1rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 0.8125rem; font-weight: 700; color: #1e293b;">Notificaciones</span>
+                <span v-if="notificacionesNoLeidas.length > 0" style="border-radius: 9999px; background: #fee2e2; padding: 0.1rem 0.45rem; font-size: 0.65rem; font-weight: 800; color: #b91c1c;">
+                  {{ notificacionesNoLeidas.length }} nueva(s)
+                </span>
+              </div>
+              <button v-if="notificacionesNoLeidas.length > 0" @click="marcarTodasLeidas" style="font-size: 0.7rem; font-weight: 600; color: #2563eb; background: none; border: none; cursor: pointer;">
+                Marcar leídas
+              </button>
+            </div>
+
+            <div style="max-height: 18rem; overflow-y: auto;">
+              <div v-if="notificaciones.length === 0" style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.8rem;">
+                No tienes notificaciones pendientes.
+              </div>
+              <div
+                v-for="n in notificaciones"
+                :key="n.id"
+                @click="clickNotificacion(n)"
+                style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f8fafc; transition: all 0.15s;"
+                :style="{ background: !n.leida ? '#fef2f2' : '#ffffff' }"
+              >
+                <div style="flex-shrink: 0; margin-top: 0.15rem;">
+                  <span v-if="n.tipo === 'rechazada'" class="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-red-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  </span>
+                  <span v-else class="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </span>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+                    <p style="font-size: 0.75rem; margin: 0; line-height: 1.35;" :style="{ fontWeight: !n.leida ? '800' : '600', color: !n.leida ? '#7f1d1d' : '#334155' }">
+                      {{ n.mensaje }}
+                    </p>
+                    <span v-if="!n.leida" style="width: 6px; height: 6px; border-radius: 9999px; background: #ef4444; flex-shrink: 0; margin-top: 4px;"></span>
+                  </div>
+                  <span style="font-size: 0.65rem; color: #94a3b8; display: block; margin-top: 0.25rem;">{{ n.tiempo }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="user-avatar">{{ userInitial }}</div>
       </div>
     </header>
@@ -56,6 +109,49 @@
         <span class="status-badge" :class="'status-' + (solicitud.original?.estado_solicitud || 'proceso').toLowerCase().replace(' ', '-')">
           ESTADO: {{ (solicitud.original?.estado_solicitud || 'EN PROCESO').toUpperCase() }}
         </span>
+      </div>
+
+      <!-- 1. ALERTA PARA EL TÉCNICO RECEPTOR (SE LE REASIGNÓ LA TAREA) -->
+      <div v-if="tareaReasignadaAlTecnico" class="mb-4 rounded-xl border border-sky-200 bg-sky-50/95 p-4 text-sky-950 flex items-start gap-3 shadow-sm">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-200 text-sky-900 flex-shrink-0">
+          <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </span>
+        <div class="text-xs leading-relaxed">
+          <p class="font-bold text-sky-950 text-sm mb-0.5">Tarea Reasignada por Coordinación</p>
+          <p class="text-sky-900">
+            Se te ha asignado este trabajo mediante una <strong>reasignación de la Coordinación</strong>. Si no estás de acuerdo o tienes algún inconveniente, por favor habla directamente con el Coordinador.
+          </p>
+          <p v-if="tareaReasignadaAlTecnico.comentarios_coordinador" class="font-semibold text-sky-950 bg-sky-100/70 p-2 rounded-lg border border-sky-200 mt-1.5">
+            Nota del Coordinador: "{{ tareaReasignadaAlTecnico.comentarios_coordinador }}"
+          </p>
+        </div>
+      </div>
+
+      <!-- 2. ALERTA PARA EL TÉCNICO SOLICITANTE (REASIGNACIÓN EN TRÁMITE) -->
+      <div v-else-if="reasignacionPendienteTecnico" class="mb-4 rounded-xl border border-indigo-200 bg-indigo-50/90 p-4 text-indigo-900 flex items-start gap-3 shadow-sm">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700 flex-shrink-0">
+          <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        </span>
+        <div class="text-xs leading-relaxed">
+          <p class="font-bold text-indigo-950 text-sm mb-0.5">Solicitud de Reasignación en Trámite</p>
+          Has solicitado la reasignación de esta tarea al Coordinador. En cuanto sea evaluada y aprobada, la tarea se transferirá al nuevo personal seleccionado.
+        </div>
+      </div>
+
+      <!-- 3. ALERTA PARA EL TÉCNICO SOLICITANTE (REASIGNACIÓN RECHAZADA) -->
+      <div v-else-if="reasignacionRechazadaTecnico" class="mb-4 rounded-xl border border-red-300 bg-red-50/95 p-4 text-red-950 flex items-start gap-3 shadow-sm">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-200 text-red-900 flex-shrink-0">
+          <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </span>
+        <div class="text-xs leading-relaxed">
+          <p class="font-bold text-red-950 text-sm mb-0.5">El Coordinador rechazó tu solicitud de reasignación</p>
+          <p class="mb-1 text-red-900">
+            Debes continuar con la ejecución y finalización de este trabajo. Si tienes algún inconveniente o no puedes realizarlo, por favor <strong>comunícate directamente con el Coordinador</strong>.
+          </p>
+          <p v-if="reasignacionRechazadaTecnico.comentarios_coordinador" class="font-semibold text-red-950 bg-red-100/80 p-2 rounded-lg border border-red-200 mt-1">
+            Motivo del Coordinador: "{{ reasignacionRechazadaTecnico.comentarios_coordinador }}"
+          </p>
+        </div>
       </div>
 
       <div class="content-grid">
@@ -202,6 +298,12 @@
               </svg>
               Reanudar Tarea
             </button>
+            <button class="reasign-btn" @click="abrirModalReasignacion">
+              <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              Pedir Reasignación
+            </button>
             <button class="cancel-btn" @click="abrirModalCancelar">
               <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -279,8 +381,8 @@
     </transition>
 
     <!-- MODAL PREMIUM: MOTIVO DE PAUSA -->
-    <div v-if="showModalPausa" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+    <div v-if="showModalPausa" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalPausa = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
         <div class="flex items-center gap-2 mb-2">
           <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -308,8 +410,8 @@
     </div>
 
     <!-- MODAL PREMIUM: AGREGAR INSUMO -->
-    <div v-if="showModalInsumo" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+    <div v-if="showModalInsumo" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalInsumo = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
         <div class="flex items-center gap-2 mb-2">
           <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -342,8 +444,8 @@
     </div>
 
     <!-- MODAL PREMIUM: FINALIZAR TRABAJO -->
-    <div v-if="showModalFinalizar" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+    <div v-if="showModalFinalizar" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalFinalizar = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
         <div class="flex items-center gap-2 mb-2">
           <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -371,8 +473,8 @@
     </div>
 
     <!-- MODAL: REPORTAR PROBLEMA -->
-    <div v-if="showModalReporte" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100">
+    <div v-if="showModalReporte" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalReporte = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100">
         <div class="flex items-center gap-2 mb-2">
           <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -434,8 +536,8 @@
     </div>
 
     <!-- MODAL: CANCELAR TAREA CON ALERTA DE NOTIFICACIÓN AL COORDINADOR -->
-    <div v-if="showModalCancelar" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4">
-      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100">
+    <div v-if="showModalCancelar" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalCancelar = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100">
         <div class="flex items-center gap-3 mb-3">
           <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 border border-amber-100">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -449,8 +551,9 @@
         </div>
 
         <div class="rounded-xl bg-amber-50/80 border border-amber-200/70 p-3.5 mb-4 text-xs text-amber-900 leading-relaxed">
-          <p class="font-bold mb-1 flex items-center gap-1 text-amber-900">
-            <span>⚠️</span> Notificación al Coordinador:
+          <p class="font-bold mb-1 flex items-center gap-1.5 text-amber-900">
+            <svg class="h-4 w-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            Notificación al Coordinador:
           </p>
           Al cancelar esta tarea, se enviará automáticamente una <strong>notificación formal al coordinador</strong> indicando que la has cancelado para que pueda ser reasignada a otro técnico disponible.
         </div>
@@ -487,15 +590,89 @@
       </div>
     </div>
 
+    <!-- MODAL: SOLICITAR REASIGNACIÓN DE TAREA -->
+    <div v-if="showModalReasignacion" class="fixed inset-0 z-[9999] pointer-events-auto flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4" @click.self="showModalReasignacion = false">
+      <div @click.stop class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl text-left border border-slate-100 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center gap-3 mb-3">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+          </span>
+          <div>
+            <h3 class="text-base font-bold text-slate-800">Solicitar Reasignación de Tarea</h3>
+            <p class="text-xs text-slate-400">Notificación al Coordinador para cambio de técnico</p>
+          </div>
+        </div>
+
+        <div class="rounded-xl bg-indigo-50/80 border border-indigo-200/70 p-3.5 mb-4 text-xs text-indigo-950 leading-relaxed">
+          <p class="font-bold mb-1 flex items-center gap-1.5 text-indigo-900">
+            <svg class="h-4 w-4 text-indigo-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Solicitud al Coordinador:
+          </p>
+          Si no puedes atender esta tarea por especialidad técnica, sobrecarga o falta de herramientas, solicita aquí su reasignación. El coordinador recibirá una alerta formal.
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5">Proponer Técnico o Coordinador (Opcional)</label>
+            <select
+              v-model="tecnicoPropuestoId"
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            >
+              <option value="">-- Ninguno en específico (decide el Coordinador) --</option>
+              <option v-for="t in personalDisponible" :key="t.id_usuario" :value="t.id_usuario">
+                {{ t.nombre }} {{ t.apellido }} — [{{ t.rol?.nombre_rol || 'Personal' }}] {{ t.area_servicio ? `• ${t.area_servicio}` : '' }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-500 mb-1.5">
+              Motivo de la Reasignación <span class="text-red-500">* (mín. 10 caracteres)</span>
+            </label>
+            <textarea
+              v-model="motivoReasignacion"
+              rows="3"
+              required
+              placeholder="Explique detalladamente por qué se solicita la reasignación de esta tarea..."
+              class="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            ></textarea>
+          </div>
+
+          <div class="mt-2 flex justify-end gap-2.5">
+            <button
+              type="button"
+              @click="showModalReasignacion = false"
+              class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+              :disabled="enviandoReasignacion"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              @click="confirmarSolicitarReasignacion"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+              :disabled="enviandoReasignacion"
+            >
+              <span v-if="enviandoReasignacion">Enviando...</span>
+              <span v-else>Enviar Solicitud de Reasignación</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <footer class="page-footer">
       © 2024 Hospital Salud Integral - Sistema de Gestión de Mantenimiento Bio-Médico
     </footer>
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
+import authService from '../../services/authService';
 import evidenciasService from '../../services/evidenciasService';
 import solicitudesService from '../../services/solicitudesService';
 import api from '../../services/api';
@@ -529,6 +706,44 @@ const confirmado = ref(false);
 const tareaTerminada = computed(() => {
   const estado = solicitud.value.original?.estado_solicitud || '';
   return ['Resuelta', 'Cerrada', 'Validada', 'Completada'].includes(estado);
+});
+
+const miIdUsuario = computed(() => authStore.user?.id_usuario || authService.getUser()?.id_usuario || null);
+
+// 1. Reasignación pendiente solicitada por ESTE técnico
+const reasignacionPendienteTecnico = computed(() => {
+  const reas = solicitud.value.original?.reasignaciones || [];
+  return reas.find(r => r.estado === 'Pendiente' && r.id_usuario_tecnico_solicitante === miIdUsuario.value) || null;
+});
+
+// 2. Reasignación rechazada solicitada por ESTE técnico (o para este ticket)
+const reasignacionRechazadaTecnico = computed(() => {
+  const reas = solicitud.value.original?.reasignaciones || [];
+  const rech = reas.find(r => r.estado === 'Rechazada');
+  if (rech) return rech;
+
+  // O si el historial contiene el evento de reasignación rechazada
+  const hist = solicitud.value.original?.historial || [];
+  const evento = hist.find(h => h.campo_modificado === 'reasignacion_rechazada');
+  if (evento) {
+    return { comentarios_coordinador: evento.valor_nuevo };
+  }
+  return null;
+});
+
+// 3. Tarea reasignada a ESTE técnico (él es el receptor)
+const tareaReasignadaAlTecnico = computed(() => {
+  const reas = solicitud.value.original?.reasignaciones || [];
+  const aprobada = reas.find(r => r.estado === 'Aprobada' && r.id_usuario_tecnico_solicitante !== miIdUsuario.value);
+  if (aprobada) return aprobada;
+
+  // O si el historial contiene el evento de reasignación aprobada
+  const hist = solicitud.value.original?.historial || [];
+  const evento = hist.find(h => h.campo_modificado === 'reasignacion_aprobada');
+  if (evento) {
+    return { comentarios_coordinador: null };
+  }
+  return null;
 });
 
 // Modal y estado para Cancelar Tarea con notificación al coordinador
@@ -566,6 +781,62 @@ async function confirmarCancelarTarea() {
     showToast(msg, 'error');
   } finally {
     cancelandoTarea.value = false;
+  }
+}
+
+// Modal y estado para Solicitar Reasignación
+const showModalReasignacion = ref(false);
+const motivoReasignacion = ref('');
+const tecnicoPropuestoId = ref('');
+const personalDisponible = ref([]);
+const enviandoReasignacion = ref(false);
+
+async function abrirModalReasignacion() {
+  motivoReasignacion.value = '';
+  tecnicoPropuestoId.value = '';
+  showModalReasignacion.value = true;
+  
+  try {
+    const res = await api.get('/catalogos/personal-operativo');
+    const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+    const miId = miIdUsuario.value;
+    const tecActual = solicitud.value.original?.asignacion?.id_usuario_tecnico;
+    personalDisponible.value = list.filter(t => t.id_usuario !== miId && t.id_usuario !== tecActual);
+  } catch (e) {
+    console.warn('[DetalleTarea] No se pudo cargar el personal operativo para proponer:', e);
+  }
+}
+
+async function confirmarSolicitarReasignacion() {
+  const motivo = motivoReasignacion.value.trim();
+  if (motivo.length < 10) {
+    showToast('El motivo de reasignación debe tener al menos 10 caracteres.', 'warning');
+    return;
+  }
+
+  const targetId = idAsignacion.value || route.params.id;
+  if (!targetId) {
+    showToast('No se encontró el identificador de la asignación.', 'error');
+    return;
+  }
+
+  enviandoReasignacion.value = true;
+  try {
+    const payload = {
+      motivo: motivo,
+      id_usuario_tecnico_propuesto: tecnicoPropuestoId.value || null
+    };
+
+    const res = await api.post(`/tecnico/asignaciones/${targetId}/solicitar-reasignacion`, payload);
+    showModalReasignacion.value = false;
+    showToast(res.data?.mensaje || 'Solicitud de reasignación enviada con éxito al coordinador.', 'success');
+    await cargarDatos();
+  } catch (e) {
+    console.error('[DetalleTarea] Error al solicitar reasignación:', e);
+    const msg = e.response?.data?.mensaje || e.response?.data?.message || 'No se pudo procesar la solicitud de reasignación.';
+    showToast(msg, 'error');
+  } finally {
+    enviandoReasignacion.value = false;
   }
 }
 
@@ -916,9 +1187,96 @@ async function confirmarFinalizarTrabajo() {
   }
 }
 
+const notificaciones = ref([]);
+const showNotificaciones = ref(false);
+
+const notificacionesNoLeidas = computed(() => notificaciones.value.filter(n => !n.leida));
+
+function toggleNotificaciones() {
+  showNotificaciones.value = !showNotificaciones.value;
+}
+
+function marcarTodasLeidas() {
+  const leidas = JSON.parse(localStorage.getItem('notif_tecnico_leidas') || '[]');
+  notificaciones.value.forEach(n => {
+    n.leida = true;
+    if (!leidas.includes(n.id)) leidas.push(n.id);
+  });
+  localStorage.setItem('notif_tecnico_leidas', JSON.stringify(leidas));
+}
+
+function clickNotificacion(n) {
+  n.leida = true;
+  const leidas = JSON.parse(localStorage.getItem('notif_tecnico_leidas') || '[]');
+  if (!leidas.includes(n.id)) {
+    leidas.push(n.id);
+    localStorage.setItem('notif_tecnico_leidas', JSON.stringify(leidas));
+  }
+  showNotificaciones.value = false;
+  if (n.tareaId && n.tareaId !== route.params.id) {
+    router.push(`/tareas/${n.tareaId}`);
+  }
+}
+
+async function cargarNotificacionesTecnico() {
+  const leidas = new Set(JSON.parse(localStorage.getItem('notif_tecnico_leidas') || '[]'));
+  const lista = [];
+  try {
+    const data = await solicitudesService.listar();
+    const tareasList = Array.isArray(data) ? data : (data.data ?? []);
+    tareasList.forEach(t => {
+      const reas = t.reasignaciones || t.original?.reasignaciones || (t.original?.solicitud?.reasignaciones) || [];
+      const rech = reas.find(r => r.estado === 'Rechazada');
+      if (rech) {
+        const idNotif = `notif-tec-rech-${rech.id_solicitud_reasignacion || t.id}`;
+        const motivo = rech.comentarios_coordinador ? `: "${rech.comentarios_coordinador}"` : '';
+        lista.unshift({
+          id: idNotif,
+          tareaId: t.id,
+          tipo: 'rechazada',
+          mensaje: `El Coordinador rechazó la reasignación de #${abreviarId(t.id)}${motivo}. Debes continuar el trabajo.`,
+          tiempo: rech.updated_at ? formatFecha(rech.updated_at) : 'Rechazada',
+          leida: leidas.has(idNotif)
+        });
+      }
+    });
+  } catch (e) {
+    console.warn('Error al cargar notificaciones en detalle:', e);
+  }
+  notificaciones.value = lista;
+}
+
+const algunModalAbierto = computed(() => {
+  return showModalInsumo.value ||
+         showModalFinalizar.value ||
+         showModalReporte.value ||
+         showModalCancelar.value ||
+         showModalReasignacion.value ||
+         showModalPausa.value;
+});
+
+watch(algunModalAbierto, (abierto) => {
+  if (abierto) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
+
 onMounted(() => {
   cargarDatos();
   cargarEvidencias();
+  cargarNotificacionesTecnico();
+  document.addEventListener('click', (e) => {
+    const el = document.getElementById('tec-notif-detalle');
+    if (el && !el.contains(e.target)) {
+      showNotificaciones.value = false;
+    }
+  });
 });
 </script>
 
@@ -1081,16 +1439,28 @@ onMounted(() => {
 .finish-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
 .finish-note { text-align: center; font-size: 0.75rem; color: #94a3b8; margin: 0 0 1rem; }
 
-.pause-btn, .cancel-btn {
+.pause-btn, .cancel-btn, .reasign-btn {
   width: 100%; background: #fff; border: 1px solid #e2e8f0; padding: 0.65rem;
   border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-bottom: 0.5rem; color: #475569;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
 }
 .resume-btn {
   background: #f0fdf4 !important;
   color: #16a34a !important;
   border-color: #bbf7d0 !important;
 }
+.reasign-btn {
+  background: #f8fafc !important;
+  color: #4338ca !important;
+  border-color: #c7d2fe !important;
+}
+.reasign-btn:hover {
+  background: #eef2ff !important;
+  border-color: #a5b4fc !important;
+  color: #3730a3 !important;
+}
 .cancel-btn { color: #dc2626; border-color: #fecaca; }
+.cancel-btn:hover { background: #fef2f2; border-color: #fca5a5; }
 
 .parts-card { background: #1e293b; color: #fff; }
 .parts-card h3 { color: #fff; }
